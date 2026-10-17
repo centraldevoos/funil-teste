@@ -297,11 +297,13 @@
   }
   function contar(el, ate, ms) {
     const ini = performance.now(), dur = (ms || 1700) * ritmo;
-    (function passo(t) {
-      const p = Math.min((t - ini) / dur, 1), e = 1 - Math.pow(1 - p, 4);
-      el.textContent = Math.round(ate * e).toLocaleString("pt-BR");
+    // O relógio é sempre o performance.now(): o horário que o requestAnimationFrame entrega pode vir em outra base
+    // em alguns celulares (era isso que fazia o contador mostrar números absurdos). E o valor fica sempre entre 0 e o final.
+    (function passo() {
+      const p = Math.max(0, Math.min((performance.now() - ini) / dur, 1)), e = 1 - Math.pow(1 - p, 4);
+      el.textContent = Math.max(0, Math.min(ate, Math.round(ate * e))).toLocaleString("pt-BR");
       if (p < 1) requestAnimationFrame(passo);
-    })(ini);
+    })();
     // Garante o número final mesmo se a aba estiver em segundo plano (o navegador pausa a animação).
     setTimeout(() => (el.textContent = Math.round(ate).toLocaleString("pt-BR")), dur + 50);
   }
@@ -667,7 +669,7 @@
     const cidade = p.destino.cidade;
     // Lugar sem aeroporto (Gramado → Porto Alegre): deixa claro que o voo é pro aeroporto mais perto do destino.
     const perto = destino.cidade && tirarAcento(destino.cidade) !== tirarAcento(cidade) ? ", o aeroporto mais perto de *" + destino.cidade + "*" : "";
-    await ele("Achei! Olha essa promoção saindo de *" + p.origem.cidade + "* pra *" + cidade + "*" + perto + ", encontrada *na última hora*, com várias datas 👇");
+    await ele("Achei! Olha essa promoção saindo de *" + p.origem.cidade + "* pra *" + cidade + "*" + perto + ", que enviamos *direto no WhatsApp* dos membros VIP *na última hora*, com várias datas 👇");
     const el = await eleHtml(htmlPromo(p), "zap", 1100);
     el.querySelector(".zap-img img").addEventListener("load", rolar);
     fotosUsadas.add(p.foto);
@@ -677,8 +679,9 @@
   // Valor vendido no site das companhias aéreas, por trecho e por pessoa (média por faixa; fixo pra mesma rota).
   function precoCompanhiaTrecho(destino, faixa, promoTrecho) {
     const [a, b] = faixa.companhia;
-    const v = a + (hash(destino.cidade + faixa.id) % (b - a + 1));
-    let c = Math.round(Math.min(b, Math.max(v, promoTrecho * 1.45 + (hash(destino.cidade) % 60))));
+    const nome = destino.cidade || destino.nome || "";
+    const v = a + (hash(nome + faixa.id) % (b - a + 1));
+    let c = Math.round(Math.min(b, Math.max(v, promoTrecho * 1.45 + (hash(nome) % 60))));
     while (c % 5 === 0 || Math.round(c - promoTrecho) % 5 === 0) c--;
     return c;
   }
@@ -840,7 +843,7 @@
     if (!ponto) {
       try {
         const ctrl = new AbortController(); setTimeout(() => ctrl.abort(), 4000);
-        const r = await fetch("https://geocoding-api.open-meteo.com/v1/search?count=5&language=pt&format=json&name=" + encodeURIComponent(t), { signal: ctrl.signal });
+        const r = await fetch("https://geocoding-api.open-meteo.com/v1/search?count=10&language=pt&format=json&name=" + encodeURIComponent(t), { signal: ctrl.signal });
         const j = await r.json();
         const g = (j.results || []).find((x) => x.country_code === "BR") || (j.results || [])[0];
         // Lugar de fora do Brasil fora da lista: sai da cidade com aeroporto mais perto, na lista do mundo.
