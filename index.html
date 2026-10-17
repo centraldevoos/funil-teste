@@ -10,7 +10,6 @@
 <meta property="og:description" content="Uma conversa rápida com o Henrique, da Central de Voos.">
 <meta property="og:image" content="midia/logo-central-de-voos.png">
 <meta name="theme-color" content="#ffffff">
-<meta name="robots" content="noindex">
 <link rel="icon" href="midia/logo-icone.png">
 <link rel="apple-touch-icon" href="midia/logo-icone.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,6 +28,9 @@
     --mola: cubic-bezier(.22, 1, .36, 1);
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  button, a, input, .caixa-bf { touch-action: manipulation; }
+  html, body { overscroll-behavior-y: none; }
+  body { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   html { scroll-behavior: smooth; }
   html, body { margin: 0; min-height: 100%; overflow-x: hidden; }
   @supports (overflow-x: clip) { html, body { overflow-x: clip; } }
@@ -52,7 +54,7 @@
   .progresso i { display: block; height: 100%; width: 0; background: var(--destaque); border-radius: 0 3px 3px 0; transition: width .8s var(--mola); }
 
   /* ---------- conversa ---------- */
-  main { max-width: 680px; margin: 0 auto; padding: 24px 16px 140px; display: flex; flex-direction: column; gap: 6px; }
+  main { max-width: 680px; margin: 0 auto; padding: 24px 16px calc(160px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 6px; }
   .linha { display: flex; gap: 10px; align-items: flex-end; animation: entra .5s var(--mola) both; }
   .linha.eu { justify-content: flex-end; margin: 10px 0 8px; }
   .linha.ele:has(+ .linha.ele) .avatar { visibility: hidden; }
@@ -70,6 +72,12 @@
   .digitando { display: flex; gap: 5px; padding: 16px 18px; }
   .digitando i { width: 7px; height: 7px; border-radius: 50%; background: var(--suave); opacity: .4; animation: ponto 1.2s infinite; }
   .digitando i:nth-child(2) { animation-delay: .15s; } .digitando i:nth-child(3) { animation-delay: .3s; }
+
+  /* botão "descer" do WhatsApp */
+  .descer { position: fixed; right: max(16px, calc(50vw - 324px)); bottom: calc(22px + env(safe-area-inset-bottom)); z-index: 20; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--linha); background: var(--superficie); color: var(--tinta-2); box-shadow: var(--sombra-flutua); display: grid; place-items: center; cursor: pointer; opacity: 0; transform: translateY(12px) scale(.9); pointer-events: none; transition: opacity .2s, transform .25s var(--mola); }
+  .descer.ver { opacity: 1; transform: none; pointer-events: auto; }
+  .descer i { position: absolute; top: 2px; right: 2px; width: 11px; height: 11px; border-radius: 50%; background: #25d366; border: 2px solid var(--superficie); display: none; }
+  .descer.nova i { display: block; }
 
   /* ---------- respostas ---------- */
   .opcoes { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin: 10px 0 4px 46px; }
@@ -186,12 +194,15 @@
   /* ---------- print do WhatsApp (promoção de exemplo) ---------- */
   .zap { flex: 1; min-width: 0; max-width: 400px; border-radius: 18px; border-bottom-left-radius: 6px; overflow: hidden; padding: 14px 12px 12px; position: relative; animation: cresce .6s var(--mola) both;
     background-color: #0b141a;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='.045' stroke-width='1.4'%3E%3Ccircle cx='14' cy='16' r='6'/%3E%3Cpath d='M48 8l8 8-8 8-8-8z'/%3E%3Cpath d='M10 52c6-6 14 6 20 0'/%3E%3Crect x='50' y='48' width='14' height='10' rx='3'/%3E%3Cpath d='M30 70l4-8 4 8'/%3E%3C/g%3E%3C/svg%3E"); }
+    background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27180%27%20height%3D%27180%27%20viewBox%3D%270%200%20180%20180%27%3E%3Cg%20fill%3D%27none%27%20stroke%3D%27%23ffffff%27%20stroke-opacity%3D%27.075%27%20stroke-width%3D%271.5%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%2712%27%20y%3D%2710%27%20width%3D%2716%27%20height%3D%2726%27%20rx%3D%273%27%2F%3E%3Cpath%20d%3D%27M18%2032h4%27%2F%3E%3Cpath%20d%3D%27M58%2022c0-5%207-7%209-2%202-5%209-3%209%202%200%206-9%2011-9%2011s-9-5-9-11z%27%2F%3E%3Cpath%20d%3D%27M112%2012l3%207%207%201-5%205%201%207-6-3-6%203%201-7-5-5%207-1z%27%2F%3E%3Cpath%20d%3D%27M150%2014h18a3%203%200%200%201%203%203v10a3%203%200%200%201-3%203h-11l-6%205v-5h-1a3%203%200%200%201-3-3V17a3%203%200%200%201%203-3z%27%2F%3E%3Ccircle%20cx%3D%2724%27%20cy%3D%2778%27%20r%3D%2710%27%2F%3E%3Cpath%20d%3D%27M20%2076h0M28%2076h0M20%2082c2%202%206%202%208%200%27%2F%3E%3Cpath%20d%3D%27M62%2070l22%208-22%208%204-8z%27%2F%3E%3Cpath%20d%3D%27M66%2078h-8%27%2F%3E%3Cpath%20d%3D%27M110%2086V68l14-3v18%27%2F%3E%3Ccircle%20cx%3D%27106%27%20cy%3D%2786%27%20r%3D%274%27%2F%3E%3Ccircle%20cx%3D%27120%27%20cy%3D%2783%27%20r%3D%274%27%2F%3E%3Crect%20x%3D%27146%27%20y%3D%2768%27%20width%3D%2726%27%20height%3D%2718%27%20rx%3D%273%27%2F%3E%3Ccircle%20cx%3D%27159%27%20cy%3D%2777%27%20r%3D%275%27%2F%3E%3Cpath%20d%3D%27M151%2068l2-4h8l2%204%27%2F%3E%3Cpath%20d%3D%27M10%20132c0-6%205-10%2011-10%203-5%2012-5%2015%201%205%200%208%204%208%209H10z%27%2F%3E%3Cpath%20d%3D%27M62%20120l10%2018M72%20120l-10%2018M58%20129h18%27%2F%3E%3Cpath%20d%3D%27M104%20124h22v14h-22zM104%20124l11%208%2011-8%27%2F%3E%3Cpath%20d%3D%27M150%20140c8-14%2016-14%2022%200M154%20130a4%204%200%201%200%208%200a4%204%200%201%200-8%200%27%2F%3E%3Cpath%20d%3D%27M20%20166l6-8%206%208%206-8%206%208%27%2F%3E%3Ccircle%20cx%3D%2776%27%20cy%3D%27164%27%20r%3D%277%27%2F%3E%3Cpath%20d%3D%27M76%20157v-6M76%20177v-6M69%20164h-6M89%20164h-6%27%2F%3E%3Cpath%20d%3D%27M116%20154l4%2014%204-14M112%20168h16%27%2F%3E%3Cpath%20d%3D%27M150%20160h20M160%20150v20%27%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E"); background-size: 180px 180px; }
+  /* o print ocupa a largura toda no celular (sem a foto do Henrique ao lado), como uma imagem encaminhada */
+  .linha.ele:has(> .zap) .avatar { display: none; }
+  .linha.ele:has(> .zap) .zap { max-width: 440px; border-bottom-left-radius: 18px; padding: 12px 10px 10px; }
   .zap-msg { background: #202c33; border-radius: 8px; border-top-left-radius: 0; padding: 6px 7px 8px; position: relative; max-width: 100%; color: #e9edef; font: 14.2px/1.38 "Segoe UI", Helvetica, Arial, sans-serif, "Noto Color Emoji"; box-shadow: 0 1px .5px rgba(0,0,0,.13); }
   .zap-msg::before { content: ""; position: absolute; left: -8px; top: 0; border-top: 8px solid #202c33; border-left: 8px solid transparent; }
   .zap-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 1px 3px 5px; font-size: 13px; }
   .zap-linha { display: flex; gap: 8px; align-items: flex-start; }
-  .zap-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex: none; margin-top: 2px; }
+  .zap-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex: none; margin-top: 2px; background: #1b1b1b; }
   .zap-linha .zap-msg { flex: 1; min-width: 0; }
   .zap-nome { color: #a78bfa; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .zap-fone { color: #8696a0; font-size: 12.5px; white-space: nowrap; }

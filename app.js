@@ -27,7 +27,17 @@
     .replace(/(^|[\s(>])~([^~\n]+)~/g, "$1<s>$2</s>")
     .replace(/\n/g, "<br>");
   const reais = (n) => "R$ " + Math.round(n).toLocaleString("pt-BR");
-  const rolar = () => requestAnimationFrame(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }));
+  // Rola até o fim, como no WhatsApp: se a pessoa subiu pra reler, não puxa ela de volta (a não ser que seja forçado).
+  const pertoDoFim = () => window.innerHeight + window.scrollY >= document.body.scrollHeight - 320;
+  let seguir = true;
+  // Botão "descer" do WhatsApp: aparece quando a pessoa subiu e chegou mensagem nova embaixo.
+  const descer = document.createElement("button");
+  descer.type = "button"; descer.className = "descer"; descer.setAttribute("aria-label", "Ir para a última mensagem");
+  descer.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg><i></i>';
+  document.body.appendChild(descer);
+  descer.addEventListener("click", () => { seguir = true; descer.classList.remove("ver", "nova"); window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }); });
+  window.addEventListener("scroll", () => { seguir = pertoDoFim(); descer.classList.toggle("ver", !seguir); if (seguir) descer.classList.remove("nova"); }, { passive: true });
+  const rolar = (forcar) => requestAnimationFrame(() => { if (forcar === true || seguir) window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }); else descer.classList.add("ver", "nova"); });
   function registrar(evento, extra) {
     eventos.push({ event: "funil_" + evento, ...extra });
     if (typeof window.fbq === "function") {
@@ -44,6 +54,28 @@
     document.getElementById("barra").style.width = (n / TOTAL) * 100 + "%";
   }
 
+  // ---------- som ----------
+  let audioCtx = null;
+  function destravarSom() {
+    try {
+      if (navigator.audioSession) navigator.audioSession.type = "playback";
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state !== "running") audioCtx.resume();
+      // um instante de silêncio, tocado dentro do toque: é o que libera o som no iOS
+      const b = audioCtx.createBuffer(1, 1, 22050), src = audioCtx.createBufferSource();
+      src.buffer = b; src.connect(audioCtx.destination); src.start(0);
+    } catch (e) { audioCtx = null; }
+  }
+  ["pointerdown", "touchend", "keydown"].forEach((ev) => window.addEventListener(ev, destravarSom, { passive: true }));
+  function somMensagem() {
+    if (!audioCtx || audioCtx.state !== "running" || document.hidden) return;
+    const t = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = "sine"; o.frequency.setValueAtTime(880, t); o.frequency.exponentialRampToValueAtTime(1320, t + 0.06);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.035, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+    o.connect(g).connect(audioCtx.destination); o.start(t); o.stop(t + 0.16);
+  }
+  const vibrarToque = () => { try { if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate(8); } catch (e) {} };
+
   // ---------- mensagens ----------
   const avatar = () => '<div class="avatar"><img src="' + esc(C.AVATAR_URL || "midia/henrique.png") + '" alt="Henrique"></div>';
   function linha(lado, html, classe) {
@@ -51,7 +83,7 @@
     el.className = "linha " + lado;
     el.innerHTML = lado === "ele" ? avatar() + '<div class="' + (classe || "balao") + '">' + html + "</div>" : '<div class="balao">' + html + "</div>";
     conversa.appendChild(el);
-    rolar();
+    if (lado === "eu") { seguir = true; rolar(true); } else { rolar(); somMensagem(); }
     return el;
   }
   async function digitando(ms) {
@@ -64,27 +96,27 @@
   }
   // Uma mensagem do Henrique, com texto no formato do WhatsApp. O "digitando" acompanha o tamanho do texto.
   // Tempo pra ler a mensagem antes de a próxima começar a ser digitada (cerca de 40 letras por segundo).
-  const leitura = (n) => Math.min(600 + n * 22, 3200);
+  const leitura = (n) => Math.min(1000 + n * 30, 4500);
   async function ele(texto, ms) {
-    const t = ms != null ? ms : Math.min((C.DIGITANDO_MS || 800) + texto.length * 5, 1800);
+    const t = ms != null ? ms : Math.min((C.DIGITANDO_MS || 1100) + texto.length * 8, 2600);
     await digitando(t);
     const el = linha("ele", fmt(texto));
     await esperar(leitura(texto.length));
     return el;
   }
   async function eleHtml(html, classe, ms) {
-    await digitando(ms != null ? ms : 1000);
+    await digitando(ms != null ? ms * 1.3 : 1400);
     const el = linha("ele", html, classe);
-    await esperar(Math.min(1400 + html.replace(/<[^>]+>/g, "").length * 6, 4000));
+    await esperar(Math.min(2000 + html.replace(/<[^>]+>/g, "").length * 8, 5500));
     return el;
   }
   const eu = (texto) => linha("eu", esc(texto));
   async function foto(url, legenda, alt) {
     if (!url) return;
-    await digitando(1000);
+    await digitando(1400);
     const el = linha("ele", '<figure style="margin:0"><img src="' + esc(url) + '" alt="' + esc(alt || "") + '">' + (legenda ? "<figcaption>" + fmt(legenda) + "</figcaption>" : "") + "</figure>", "balao foto");
     el.querySelector("img").addEventListener("load", rolar);
-    await esperar(legenda ? leitura(legenda.length) + 800 : 1600);
+    await esperar(legenda ? leitura(legenda.length) + 1100 : 2300);
   }
   async function dica(texto) { await esperar(300); return linha("ele", fmt(texto), "balao dica"); }
 
@@ -142,10 +174,10 @@
         b.type = "button";
         b.className = "opcao" + (o.principal || lista.length === 1 ? " principal" : "");
         b.innerHTML = modo === "lista" ? "<span>" + esc(o.texto) + "</span>" + (o.detalhe ? "<small>" + esc(o.detalhe) + "</small>" : "") : esc(o.texto);
-        b.addEventListener("click", () => { respondeu = true; clearTimeout(cutucada); caixa.remove(); eu(o.texto); registrar("resposta", { resposta: o.valor || o.texto }); resolve(o); });
+        b.addEventListener("click", () => { vibrarToque(); respondeu = true; clearTimeout(cutucada); caixa.remove(); eu(o.texto); registrar("resposta", { resposta: o.valor || o.texto }); resolve(o); });
         caixa.appendChild(b);
       }
-      conversa.appendChild(caixa); rolar();
+      conversa.appendChild(caixa); rolar(true);
     });
   }
   function campoNome() {
@@ -168,7 +200,8 @@
         const n = input.value.trim().split(/\s+/)[0];
         resolve(n.charAt(0).toUpperCase() + n.slice(1).toLowerCase());
       });
-      conversa.appendChild(f); rolar();
+      conversa.appendChild(f); rolar(true);
+      input.addEventListener("focus", () => setTimeout(() => f.scrollIntoView({ block: "end", behavior: "smooth" }), 320));
       setTimeout(() => input.focus({ preventScroll: true }), 350);
     });
   }
@@ -185,7 +218,8 @@
       const input = f.querySelector("input"), botao = f.querySelector("button");
       input.addEventListener("input", () => botao.classList.toggle("pronto", input.value.trim().length >= 2));
       f.addEventListener("submit", (e) => { e.preventDefault(); if (input.value.trim().length < 2) return input.focus(); f.remove(); resolve(input.value.trim()); });
-      conversa.appendChild(f); rolar();
+      conversa.appendChild(f); rolar(true);
+      input.addEventListener("focus", () => setTimeout(() => f.scrollIntoView({ block: "end", behavior: "smooth" }), 320));
       setTimeout(() => input.focus({ preventScroll: true }), 350);
     });
   }
@@ -210,7 +244,8 @@
       }
       input.addEventListener("input", () => botao.classList.toggle("pronto", input.value.trim().length >= 2));
       f.addEventListener("submit", (e) => { e.preventDefault(); if (input.value.trim().length < 2) return input.focus(); enviar(input.value); });
-      conversa.appendChild(f); conversa.appendChild(atalhos); rolar();
+      conversa.appendChild(f); conversa.appendChild(atalhos); rolar(true);
+      input.addEventListener("focus", () => setTimeout(() => atalhos.scrollIntoView({ block: "end", behavior: "smooth" }), 320));
       setTimeout(() => input.focus({ preventScroll: true }), 350);
     });
   }
@@ -505,25 +540,27 @@
     const [cia, programa] = f.cias[hash(destino.nome + o.iata) % f.cias.length];
     const dinheiro = precoTrecho(destino, origem);
     const milhas = Math.max(500, Math.round((dinheiro / 24) * 1000 / 500) * 500);
-    // Datas: sempre de 3 a 5 meses seguidos, com 11 a 23 datas de ida e 11 a 23 de volta em cada mês, nunca no passado.
+    // Datas: sempre de 2 a 4 meses seguidos, com 9 a 18 datas de ida e 9 a 18 de volta em cada mês, nunca no passado.
     //   fim de ano / virada / Natal → começa em novembro ou dezembro e sempre inclui dezembro e janeiro;
     //   mês escolhido → começa no mês anterior ou no próprio e sempre inclui o mês escolhido;
     //   "o quanto antes" → começa no mês atual (a partir de amanhã); sem data → começa no mês que vem.
     //   Com um dia escolhido, ele entra na ida (e a volta, uma semana depois).
     const hoje = new Date();
     const amanha = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1);
-    const quantosMeses = sorte(3, 5);
+    let quantosMeses = sorte(2, 4);
     let inicio;
     if (quando && quando.festas) inicio = new Date(quando.mes.getFullYear(), 11 - sorte(0, 1), 1);
     else if (quando && quando.mes && !quando.asap) inicio = new Date(quando.mes.getFullYear(), quando.mes.getMonth() - (quando.texto === "do meio do ano" ? 0 : sorte(0, 1)), 1);
     else if (quando && quando.asap) inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
     else inicio = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
     if (new Date(inicio.getFullYear(), inicio.getMonth() + 1, 0) < amanha) inicio = new Date(amanha.getFullYear(), amanha.getMonth(), 1);
+    // fim de ano começando em novembro precisa de 3 meses pra pegar dezembro e janeiro
+    if (quando && quando.festas && inicio.getMonth() === 10) quantosMeses = Math.max(quantosMeses, 3);
     const diasDoMes = (mes) => {
       const ultimo = new Date(mes.getFullYear(), mes.getMonth() + 1, 0).getDate();
       const possiveis = [];
       for (let d = 1; d <= ultimo; d++) { const x = new Date(mes.getFullYear(), mes.getMonth(), d); if (x >= amanha) possiveis.push(x); }
-      const quantos = Math.min(sorte(11, 23), possiveis.length);
+      const quantos = Math.min(sorte(9, 18), possiveis.length);
       for (let i = possiveis.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [possiveis[i], possiveis[j]] = [possiveis[j], possiveis[i]]; }
       return possiveis.slice(0, quantos);
     };
@@ -539,7 +576,7 @@
       if (!ida.some((x) => x.getTime() === d.getTime())) ida.push(d);
       if (!volta.some((x) => x.getTime() === v.getTime())) volta.push(v);
     }
-    return { origem: o, destino: { cidade: destino.cidadeVoo || destino.cidade, iata: destino.iata, bandeira: destino.bandeira }, classe: "ECONOMICA", cia, programa, milhasIda: milhas, milhasVolta: milhas, dinheiroTrecho: dinheiro, nomeMilhas: NOME_MILHAS[cia] || programa, ida, volta, hora: hoje, foto: destino.foto, alt: "Foto de " + destino.cidade, simulada: true };
+    return { origem: o, destino: { cidade: destino.cidadeVoo || destino.cidade, iata: destino.iata, bandeira: destino.bandeira }, classe: "ECONOMICA", cia, programa, milhasIda: milhas, milhasVolta: milhas, dinheiroTrecho: dinheiro, nomeMilhas: NOME_MILHAS[cia] || programa, ida, volta, hora: new Date(Date.now() - sorte(41, 58) * 60000), foto: destino.foto, alt: "Foto de " + destino.cidade, simulada: true };
   }
   async function buscarPromoReal(destino, origem) {
     if (!C.PROMOS_API_URL) return null;
@@ -574,7 +611,7 @@
       rotulo("📅 Datas de volta :") + "\n" + linhasDeDatas(p.volta) + "\n\n" +
       rotulo("💵 Valor em dinheiro :") + " R$ " + dinheiro(p.dinheiroTrecho) + " por trecho" +
       (p.semMilhas ? "" : "\n" + rotulo("🪙 Valor em milhas :") + " " + milhar(p.milhasIda) + " milhas " + esc(p.nomeMilhas) + " por trecho");
-    return '<div class="zap-linha"><img class="zap-avatar" src="midia/logo-icone.png" alt=""><div class="zap-msg">' +
+    return '<div class="zap-linha"><img class="zap-avatar" src="midia/logo-central-de-voos.png" alt=""><div class="zap-msg">' +
       '<div class="zap-topo"><span class="zap-nome">' + esc(C.PROMO_REMETENTE || "Central de Voos") + "</span></div>" +
       '<div class="zap-img"><img src="' + esc(p.foto) + '" alt="' + esc(p.alt || "") + '"></div>' +
       '<div class="zap-texto">' + texto + '<span class="zap-hora">' + hora + "</span></div></div></div>";
@@ -818,7 +855,6 @@
 
   // Sons do presente, gerados no próprio navegador (sem arquivo e sem direito autoral). Só tocam depois do toque
   // da pessoa (regra dos navegadores).
-  let audioCtx = null;
   function ruido(dur) {
     const len = Math.max(1, Math.floor(audioCtx.sampleRate * dur)), buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate), d = buf.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
@@ -874,7 +910,7 @@
     const t = audioCtx.currentTime + 0.68;
     [261.63, 329.63, 392].forEach((f) => tom(f, t, 1.3, "triangle", 0.05));
   }
-  const vibrar = (p) => { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
+  const vibrar = (p) => { try { if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate(p); } catch (e) {} };
 
   // O presente de Black Friday: a pessoa toca na caixa, ela treme cada vez mais forte, a tampa voa,
   // sai um facho de luz e o cupom de 55% OFF (o cupom do config) sobe de dentro da caixa.
@@ -930,7 +966,8 @@
         if (abriu) return;
         abriu = true;
         registrar("abriu_presente", {});
-        try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); await audioCtx.resume(); } catch (e) { audioCtx = null; }
+        destravarSom();
+        try { if (audioCtx) await audioCtx.resume(); } catch (e) {}
         dica.classList.add("some");
         caixa.removeAttribute("role"); caixa.removeAttribute("tabindex");
         // 1. Suspense: a caixa treme cada vez mais forte.
@@ -1170,7 +1207,7 @@
     await ele("Esse é o seu *presente de Black Friday*: um *CUPOM exclusivo* pra acessar a Comunidade Vip com o maior desconto. APROVEITA!");
 
     const oferta = await eleHtml(
-      '<div class="oferta-topo"><img src="midia/logo-icone.png" alt=""><div><h3>Comunidade VIP</h3><p>Central de Voos</p></div><span class="off">55% OFF</span></div>' +
+      '<div class="oferta-topo"><img src="midia/logo-central-de-voos.png" alt=""><div><h3>Comunidade VIP</h3><p>Central de Voos</p></div><span class="off">55% OFF</span></div>' +
       '<div class="oferta-corpo">' +
       '<div class="preco-de">De <s>R$ 67,06</s></div>' +
       '<div class="preco-por">R$ 30,18 <small>/ mês</small></div>' +

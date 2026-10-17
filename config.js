@@ -36,5 +36,5 @@ window.CONFIG = {
   PROMO_REMETENTE: "Central de Voos",
 
   // Ritmo da conversa: tempo mínimo de "digitando" por mensagem (ms); depois de cada mensagem há uma pausa de leitura proporcional ao texto. No modo teste (?teste=1), tudo fica 5x mais rápido.
-  DIGITANDO_MS: 800,
+  DIGITANDO_MS: 1100,
 };
