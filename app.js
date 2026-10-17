@@ -69,10 +69,16 @@
   ["pointerdown", "touchend", "keydown"].forEach((ev) => window.addEventListener(ev, destravarSom, { passive: true }));
   function somMensagem() {
     if (!audioCtx || audioCtx.state !== "running" || document.hidden) return;
-    const t = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type = "sine"; o.frequency.setValueAtTime(880, t); o.frequency.exponentialRampToValueAtTime(1320, t + 0.06);
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.035, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
-    o.connect(g).connect(audioCtx.destination); o.start(t); o.stop(t + 0.16);
+    // "ploc" macio de bolha: duas notas curtinhas subindo (sem o apito agudo de antes), passando por um filtro que tira o chiado
+    const t = audioCtx.currentTime, filtro = audioCtx.createBiquadFilter(), mestre = audioCtx.createGain();
+    filtro.type = "lowpass"; filtro.frequency.value = 2400; mestre.gain.value = 0.9;
+    filtro.connect(mestre).connect(audioCtx.destination);
+    [[0, 520, 780, 0.10], [0.075, 700, 1040, 0.08]].forEach(([d, f1, f2, vol]) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = "sine"; o.frequency.setValueAtTime(f1, t + d); o.frequency.exponentialRampToValueAtTime(f2, t + d + 0.035);
+      g.gain.setValueAtTime(0.0001, t + d); g.gain.exponentialRampToValueAtTime(vol, t + d + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.09);
+      o.connect(g).connect(filtro); o.start(t + d); o.stop(t + d + 0.1);
+    });
   }
   const vibrarToque = () => { try { if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate(8); } catch (e) {} };
 
@@ -96,27 +102,28 @@
   }
   // Uma mensagem do Henrique, com texto no formato do WhatsApp. O "digitando" acompanha o tamanho do texto.
   // Tempo pra ler a mensagem antes de a próxima começar a ser digitada (cerca de 40 letras por segundo).
-  const leitura = (n) => Math.min(1000 + n * 30, 4500);
+  // Ritmo próximo do fluxo da DataCrazy (1 s entre as mensagens, mais a entrega do WhatsApp): ~2 s nas curtas, ~3 s nas longas.
+  const leitura = (n) => Math.min(500 + n * 6, 1500);
   async function ele(texto, ms) {
-    const t = ms != null ? ms : Math.min((C.DIGITANDO_MS || 1100) + texto.length * 8, 2600);
+    const t = ms != null ? ms : Math.min((C.DIGITANDO_MS || 900) + texto.length * 3, 1600);
     await digitando(t);
     const el = linha("ele", fmt(texto));
     await esperar(leitura(texto.length));
     return el;
   }
   async function eleHtml(html, classe, ms) {
-    await digitando(ms != null ? ms * 1.3 : 1400);
+    await digitando(ms != null ? ms : 1100);
     const el = linha("ele", html, classe);
-    await esperar(Math.min(2000 + html.replace(/<[^>]+>/g, "").length * 8, 5500));
+    await esperar(Math.min(1500 + html.replace(/<[^>]+>/g, "").length * 4, 3500));
     return el;
   }
   const eu = (texto) => linha("eu", esc(texto));
   async function foto(url, legenda, alt) {
     if (!url) return;
-    await digitando(1400);
+    await digitando(1100);
     const el = linha("ele", '<figure style="margin:0"><img src="' + esc(url) + '" alt="' + esc(alt || "") + '">' + (legenda ? "<figcaption>" + fmt(legenda) + "</figcaption>" : "") + "</figure>", "balao foto");
     el.querySelector("img").addEventListener("load", rolar);
-    await esperar(legenda ? leitura(legenda.length) + 1100 : 2300);
+    await esperar(legenda ? leitura(legenda.length) + 700 : 1800);
   }
   async function dica(texto) { await esperar(300); return linha("ele", fmt(texto), "balao dica"); }
 
