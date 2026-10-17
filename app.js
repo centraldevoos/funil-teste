@@ -37,7 +37,8 @@
   document.body.appendChild(descer);
   descer.addEventListener("click", () => { seguir = true; descer.classList.remove("ver", "nova"); window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }); });
   window.addEventListener("scroll", () => { seguir = pertoDoFim(); descer.classList.toggle("ver", !seguir); if (seguir) descer.classList.remove("nova"); }, { passive: true });
-  const rolar = (forcar) => requestAnimationFrame(() => { if (forcar === true || seguir) window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }); else descer.classList.add("ver", "nova"); });
+  const escrevendo = () => document.activeElement && document.activeElement.tagName === "INPUT";
+  const rolar = (forcar) => requestAnimationFrame(() => { if (forcar !== true && escrevendo()) return; if (forcar === true || seguir) window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }); else descer.classList.add("ver", "nova"); });
   function registrar(evento, extra) {
     eventos.push({ event: "funil_" + evento, ...extra });
     if (typeof window.fbq === "function") {
@@ -84,7 +85,24 @@
 
   // ---------- mensagens ----------
   const avatar = () => '<div class="avatar"><img src="' + esc(C.AVATAR_URL || "midia/henrique.png") + '" alt="Henrique"></div>';
+  let digEl = null, digSome = null;
+  function mostrarDigitando() {
+    clearTimeout(digSome);
+    if (!digEl) {
+      digEl = document.createElement("div");
+      digEl.className = "linha ele";
+      digEl.innerHTML = avatar() + '<div class="balao digitando" aria-label="Henrique está digitando"><i></i><i></i><i></i></div>';
+      conversa.appendChild(digEl); rolar();
+    } else if (digEl !== conversa.lastElementChild) conversa.appendChild(digEl);
+  }
+  // some logo em seguida, a não ser que a próxima mensagem já comece a ser digitada (aí continua, sem piscar)
+  function esconderDigitando(agora) {
+    clearTimeout(digSome);
+    const tirar = () => { if (digEl) { digEl.remove(); digEl = null; } };
+    if (agora) tirar(); else digSome = setTimeout(tirar, 80);
+  }
   function linha(lado, html, classe) {
+    esconderDigitando(true);
     const el = document.createElement("div");
     el.className = "linha " + lado;
     el.innerHTML = lado === "ele" ? avatar() + '<div class="' + (classe || "balao") + '">' + html + "</div>" : '<div class="balao">' + html + "</div>";
@@ -93,13 +111,12 @@
     return el;
   }
   async function digitando(ms) {
-    const el = document.createElement("div");
-    el.className = "linha ele";
-    el.innerHTML = avatar() + '<div class="balao digitando" aria-label="Henrique está digitando"><i></i><i></i><i></i></div>';
-    conversa.appendChild(el); rolar();
+    mostrarDigitando();
     await esperar(ms);
-    el.remove();
+    esconderDigitando();
   }
+  // Trechos com muitas mensagens seguidas (a história de Paris) vão mais devagar.
+  let calma = 1;
   // Uma mensagem do Henrique, com texto no formato do WhatsApp. O "digitando" acompanha o tamanho do texto.
   // Tempo pra ler a mensagem antes de a próxima começar a ser digitada (cerca de 40 letras por segundo).
   // Ritmo: ~3 s entre mensagens curtas e ~5 s nas longas. Cartões grandes (vantagens, bônus, tabela) ganham tempo de leitura
@@ -107,24 +124,26 @@
   const leitura = (n) => Math.min(900 + n * 14, 3000);
   async function ele(texto, ms) {
     const t = ms != null ? ms : Math.min((C.DIGITANDO_MS || 1100) + texto.length * 5, 2200);
-    await digitando(t);
+    await digitando(t * calma);
     const el = linha("ele", fmt(texto));
-    await esperar(leitura(texto.length));
+    await digitando(leitura(texto.length) * calma);
     return el;
   }
   async function eleHtml(html, classe, ms) {
     await digitando(ms != null ? ms : 1100);
     const el = linha("ele", html, classe);
-    await esperar(Math.min(2500 + html.replace(/<[^>]+>/g, "").length * 25, 9000));
+    await digitando(Math.min(2500 + html.replace(/<[^>]+>/g, "").length * 25, 9000));
     return el;
   }
+  // Cartão que a pessoa usa na hora (diagnóstico, presente, oferta): aparece e já funciona, sem pausa depois.
+  async function cartao(html, classe, ms) { await digitando(ms != null ? ms : 1100); return linha("ele", html, classe); }
   const eu = (texto) => linha("eu", esc(texto));
   async function foto(url, legenda, alt) {
     if (!url) return;
     await digitando(1100);
     const el = linha("ele", '<figure style="margin:0"><img src="' + esc(url) + '" alt="' + esc(alt || "") + '">' + (legenda ? "<figcaption>" + fmt(legenda) + "</figcaption>" : "") + "</figure>", "balao foto");
     el.querySelector("img").addEventListener("load", rolar);
-    await esperar(legenda ? leitura(legenda.length) + 1200 : 2800);
+    await digitando((legenda ? leitura(legenda.length) + 1200 : 2800) * calma);
   }
   async function dica(texto) { await esperar(300); return linha("ele", fmt(texto), "balao dica"); }
 
@@ -163,6 +182,7 @@
 
   // Botões de resposta. Se a pessoa ficar 50 s sem responder e sem mexer na tela, o Henrique cutuca uma vez, embaixo dos botões.
   function opcoes(lista, modo) {
+    esconderDigitando(true);
     return new Promise((resolve) => {
       const caixa = document.createElement("div");
       caixa.className = "opcoes" + (modo === "lista" ? " lista" : "");
@@ -189,6 +209,7 @@
     });
   }
   function campoNome() {
+    esconderDigitando(true);
     return new Promise((resolve) => {
       const f = document.createElement("form");
       f.className = "campo";
@@ -209,13 +230,13 @@
         resolve(n.charAt(0).toUpperCase() + n.slice(1).toLowerCase());
       });
       conversa.appendChild(f); rolar(true);
-      input.addEventListener("focus", () => setTimeout(() => f.scrollIntoView({ block: "end", behavior: "smooth" }), 320));
       setTimeout(() => input.focus({ preventScroll: true }), 350);
     });
   }
 
   // Campo de texto da conversa (usado pra data e pra cidade de saída).
   function campoTexto({ nome, placeholder, rotulo, sugestoes }) {
+    esconderDigitando(true);
     return new Promise((resolve) => {
       const f = document.createElement("form");
       f.className = "campo";
@@ -227,13 +248,13 @@
       input.addEventListener("input", () => botao.classList.toggle("pronto", input.value.trim().length >= 2));
       f.addEventListener("submit", (e) => { e.preventDefault(); if (input.value.trim().length < 2) return input.focus(); f.remove(); resolve(input.value.trim()); });
       conversa.appendChild(f); rolar(true);
-      input.addEventListener("focus", () => setTimeout(() => f.scrollIntoView({ block: "end", behavior: "smooth" }), 320));
       setTimeout(() => input.focus({ preventScroll: true }), 350);
     });
   }
 
   // Destino livre (qualquer lugar do mundo), com sugestões da lista e alguns atalhos.
   function campoDestino() {
+    esconderDigitando(true);
     return new Promise((resolve) => {
       const f = document.createElement("form");
       f.className = "campo";
@@ -253,7 +274,6 @@
       input.addEventListener("input", () => botao.classList.toggle("pronto", input.value.trim().length >= 2));
       f.addEventListener("submit", (e) => { e.preventDefault(); if (input.value.trim().length < 2) return input.focus(); enviar(input.value); });
       conversa.appendChild(f); conversa.appendChild(atalhos); rolar(true);
-      input.addEventListener("focus", () => setTimeout(() => atalhos.scrollIntoView({ block: "end", behavior: "smooth" }), 320));
       setTimeout(() => input.focus({ preventScroll: true }), 350);
     });
   }
@@ -261,7 +281,7 @@
   // ---------- cartões ----------
   async function carregando(titulo, passos, msPorPasso) {
     const html = '<p class="titulo">' + esc(titulo) + "</p>" + passos.map((p, i) => '<div class="passo' + (i ? "" : " fazendo") + '"><span class="ic"></span><span>' + esc(p.texto || p).replace("{n}", '<b class="n">0</b>') + "</span></div>").join("") + '<div class="barra"><i></i></div>';
-    const el = await eleHtml(html, "cartao", 500);
+    const el = await cartao(html, "cartao", 500);
     const itens = [...el.querySelectorAll(".passo")], barra = el.querySelector(".barra i");
     const ms = msPorPasso || 1250;
     for (let i = 0; i < itens.length; i++) {
@@ -285,11 +305,12 @@
     // Garante o número final mesmo se a aba estiver em segundo plano (o navegador pausa a animação).
     setTimeout(() => (el.textContent = Math.round(ate).toLocaleString("pt-BR")), dur + 50);
   }
-  function relogioAteMeiaNoite(el) {
+  // Contagem regressiva de 15 minutos a partir do momento em que a oferta aparece.
+  function relogio15(el) {
+    const fim = Date.now() + 15 * 60 * 1000;
     const tick = () => {
-      const agora = new Date(), fim = new Date(agora); fim.setHours(24, 0, 0, 0);
-      const s = Math.max(0, Math.floor((fim - agora) / 1000));
-      el.textContent = [Math.floor(s / 3600), Math.floor((s % 3600) / 60), s % 60].map((n) => String(n).padStart(2, "0")).join(":");
+      const s = Math.max(0, Math.floor((fim - Date.now()) / 1000));
+      el.textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
     };
     tick(); setInterval(tick, 1000);
   }
@@ -721,17 +742,18 @@
       '<div class="bloco-preco"><div class="bloco-titulo">' + titulo + "</div>" +
       '<div class="bloco-linha"><span>Nas companhias aéreas</span><span class="de">' + reais(cia) + "</span></div>" +
       '<div class="bloco-linha vip"><span>No VIP</span><span class="por">' + reais(vip) + "</span></div></div>";
-    const res = await eleHtml(
+    await digitando(1100);
+    const res = linha("ele",
       '<p class="titulo">Sua economia nessa promoção</p>' +
       bloco("Ida e volta, por pessoa", ciaPessoa, vipPessoa) +
       (pessoas > 1 ? bloco("Ida e volta, " + quem, normal, naPromo) : "") +
       '<div class="rotulo">' + (pessoas > 1 ? "Juntando todo mundo, vocês economizam" : "Você economiza") + '</div>' +
       '<div class="numero"><small>R$</small><span>0</span></div>' +
       '<div class="letra-mida">Preço nas companhias aéreas: média do valor vendido no site das companhias pra essa rota, nas mesmas datas.</div>',
-      "cartao resultado", 700
+      "cartao resultado"
     );
     contar(res.querySelector(".numero span"), economia);
-    await esperar(1900);
+    await digitando(4500);
     const frase = economia < 700 ? "Já dá pra pagar os passeios da viagem 😄" : economia < 2500 ? "Dá pra pagar a hospedagem e os passeios 😄" : "Dá pra pagar o hotel, os passeios e ainda sobra 😄";
     await ele("Isso é o que fica no seu bolso, *" + dados.nome + "*. " + frase);
   }
@@ -953,7 +975,7 @@
         "</svg>";
       const faiscas = [[14, 30, 0], [84, 22, 0.6], [6, 70, 1.2], [92, 62, 0.3], [24, 12, 0.9], [74, 46, 1.5]]
         .map(([x, y, d]) => '<i class="faisca" style="left:' + x + "%;top:" + y + "%;animation-delay:" + d + 's"></i>').join("");
-      const el = await eleHtml(
+      const el = await cartao(
         '<div class="bf-faixa"><span>BLACK FRIDAY</span></div><p class="bf-titulo">Tem um presente esperando por você</p>' +
         '<div class="palco">' +
         '<div class="raios"></div><div class="halo"></div>' + faiscas +
@@ -977,6 +999,7 @@
         destravarSom();
         try { if (audioCtx) await audioCtx.resume(); } catch (e) {}
         dica.classList.add("some");
+        cartaoBf.classList.remove("tocavel");
         caixa.removeAttribute("role"); caixa.removeAttribute("tabindex");
         // 1. Suspense: a caixa treme cada vez mais forte.
         palco.classList.add("tremendo");
@@ -1014,7 +1037,9 @@
         await espera(1600);
         resolve();
       }
-      caixa.addEventListener("click", abrir);
+      const cartaoBf = el.querySelector(".bf-cartao");
+      cartaoBf.classList.add("tocavel");
+      cartaoBf.addEventListener("click", abrir);
       caixa.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(); } });
       rolar();
     });
@@ -1100,6 +1125,7 @@
       await ele("Uhuul boraaa ✈️");
       await ele("Posso te mostrar quanto economizei na minha viagem dos sonhos? 😊✈️");
       await opcoes([{ texto: "Pode sim!", principal: true }]);
+      calma = 1.5;
       await ele("olha isso! Primeiro vamos ver quanto estava custando no Google Flights... 👇");
       await foto(IMG.googleParis, "", "Busca no Google Flights: Rio de Janeiro para Paris");
       await ele("Passagem com o \"menor preço\" do Google do Rio de Janeiro para Paris custando 4.438 reais voando de LATAM");
@@ -1111,6 +1137,7 @@
       await video("videoHistoria");
       await ele("Porém, *pagando a metade do preço* 😎 Assim fica fácil ser feliz né?! rsrsrs");
       await ele("Viajando a gente até esquece dos problemas do dia a dia 😄");
+      calma = 1;
       await opcoes([{ texto: "Preciso viajaar!", principal: true }]);
       await ele("Vamoos ✈️✈️✈️");
       await ele("Porém, como vc não tem muitas milhas ou não tem nada, a coisa certa pra você é a Comunidade VIP!");
@@ -1121,13 +1148,13 @@
     etapa(3);
 
     // Grátis × VIP.
-    await eleHtml(
-      '<div class="cols"><div class="col"><h4>Grupo Grátis</h4><ul>' + GRATIS.map((g) => '<li class="' + g[0] + '">' + esc(g[1]) + "</li>").join("") + "</ul></div>" +
-      '<div class="col vip"><h4>Comunidade Vip 👑</h4><ul>' + VIP.map((v) => '<li class="sim">' + esc(v) + "</li>").join("") + "</ul></div></div>",
-      "cartao comparar", 900
-    );
-    await esperar(900);
-    await eleHtml('<p class="titulo">💥 E mais! Incríveis bônus, <i>somente hoje</i>, que vão potencializar suas economias:</p><ul>' + BONUS.map((b) => "<li><span>" + b + "</span></li>").join("") + "</ul>", "cartao bonus", 1100);
+    await digitando(1200);
+    linha("ele", '<div class="cols"><div class="col"><h4>Grupo Grátis</h4><ul>' + GRATIS.map((g) => '<li class="' + g[0] + '">' + esc(g[1]) + "</li>").join("") + "</ul></div></div>", "cartao comparar um");
+    await digitando(2000);
+    linha("ele", '<div class="cols"><div class="col vip"><h4>Comunidade Vip 👑</h4><ul>' + VIP.map((v) => '<li class="sim">' + esc(v) + "</li>").join("") + "</ul></div></div>", "cartao comparar um");
+    await digitando(4000);
+    linha("ele", '<p class="titulo">💥 E mais! Incríveis bônus, <i>somente hoje</i>, que vão potencializar suas economias:</p><ul>' + BONUS.map((b) => "<li><span>" + b + "</span></li>").join("") + "</ul>", "cartao bonus");
+    await digitando(3000);
     await opcoes([{ texto: "Quero ser VIP", principal: true }]);
     etapa(4);
 
@@ -1214,21 +1241,21 @@
     await audio("audioOferta");
     await ele("Esse é o seu *presente de Black Friday*: um *CUPOM exclusivo* pra acessar a Comunidade Vip com o maior desconto. APROVEITA!");
 
-    const oferta = await eleHtml(
+    const oferta = await cartao(
       '<div class="oferta-topo"><img src="midia/logo-central-de-voos.png" alt=""><div><h3>Comunidade VIP</h3><p>Central de Voos</p></div><span class="off">55% OFF</span></div>' +
       '<div class="oferta-corpo">' +
       '<div class="preco-de">De <s>R$ 67,06</s></div>' +
       '<div class="preco-por">R$ 30,18 <small>/ mês</small></div>' +
       '<div class="preco-nota">na assinatura anual</div>' +
       '<div class="cupom"><div><span>🚨 Cupom exclusivo</span><strong>' + esc(CUPOM) + '</strong></div><button type="button" class="copiar">Copiar</button></div>' +
-      '<div class="relogio"><span>⚠️ O cupom é por tempo limitado</span><b class="tempo">--:--:--</b></div>' +
+      '<div class="relogio"><span>⚠️ O cupom é por tempo limitado</span><b class="tempo">15:00</b></div>' +
       '<a class="cta" href="#" target="_blank" rel="noopener">Entrar para o VIP <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>' +
       '<div class="aviso">O link do checkout ainda não foi configurado (LINK_CHECKOUT em config.js).</div>' +
       '<div class="garantia"><img class="selo-img" src="midia/selo-garantia-7-dias.png" alt="Selo de garantia de 7 dias"><span><b>Garantia de 7 dias.</b> Se não gostar, a gente devolve todo o seu dinheiro.</span></div>' +
       "</div>",
       "cartao oferta", 1000
     );
-    relogioAteMeiaNoite(oferta.querySelector(".tempo"));
+    relogio15(oferta.querySelector(".tempo"));
     const rodapeEl = document.querySelector(".rodape");
     if (rodapeEl) rodapeEl.hidden = false;
     const copiar = oferta.querySelector(".copiar");
