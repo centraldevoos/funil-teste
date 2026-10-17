@@ -102,10 +102,11 @@
   }
   // Uma mensagem do Henrique, com texto no formato do WhatsApp. O "digitando" acompanha o tamanho do texto.
   // Tempo pra ler a mensagem antes de a próxima começar a ser digitada (cerca de 40 letras por segundo).
-  // Ritmo próximo do fluxo da DataCrazy (1 s entre as mensagens, mais a entrega do WhatsApp): ~2 s nas curtas, ~3 s nas longas.
-  const leitura = (n) => Math.min(500 + n * 6, 1500);
+  // Ritmo: ~3 s entre mensagens curtas e ~5 s nas longas. Cartões grandes (vantagens, bônus, tabela) ganham tempo de leitura
+  // proporcional ao texto (até 9 s), porque na DataCrazy cada um esperava a pessoa tocar num botão antes de seguir.
+  const leitura = (n) => Math.min(900 + n * 14, 3000);
   async function ele(texto, ms) {
-    const t = ms != null ? ms : Math.min((C.DIGITANDO_MS || 900) + texto.length * 3, 1600);
+    const t = ms != null ? ms : Math.min((C.DIGITANDO_MS || 1100) + texto.length * 5, 2200);
     await digitando(t);
     const el = linha("ele", fmt(texto));
     await esperar(leitura(texto.length));
@@ -114,7 +115,7 @@
   async function eleHtml(html, classe, ms) {
     await digitando(ms != null ? ms : 1100);
     const el = linha("ele", html, classe);
-    await esperar(Math.min(1500 + html.replace(/<[^>]+>/g, "").length * 4, 3500));
+    await esperar(Math.min(2500 + html.replace(/<[^>]+>/g, "").length * 25, 9000));
     return el;
   }
   const eu = (texto) => linha("eu", esc(texto));
@@ -123,7 +124,7 @@
     await digitando(1100);
     const el = linha("ele", '<figure style="margin:0"><img src="' + esc(url) + '" alt="' + esc(alt || "") + '">' + (legenda ? "<figcaption>" + fmt(legenda) + "</figcaption>" : "") + "</figure>", "balao foto");
     el.querySelector("img").addEventListener("load", rolar);
-    await esperar(legenda ? leitura(legenda.length) + 700 : 1800);
+    await esperar(legenda ? leitura(legenda.length) + 1200 : 2800);
   }
   async function dica(texto) { await esperar(300); return linha("ele", fmt(texto), "balao dica"); }
 
