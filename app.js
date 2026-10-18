@@ -145,6 +145,21 @@
     el.querySelector("img").addEventListener("load", rolar);
     await digitando((legenda ? leitura(legenda.length) + 1200 : 2800) * calma);
   }
+  // Vídeo do vturb dentro da conversa (o código do player é o mesmo que o vturb dá; o script é carregado uma vez só).
+  const vturbCarregados = new Set();
+  async function videoVturb(chave, rotulo) {
+    const v = (C.VTURB || {})[chave];
+    if (!v || !v.id) return avisoTeste("🎬 Vídeo do vturb entra aqui (VTURB." + chave + ")");
+    await digitando(1400);
+    const el = linha("ele", '<vturb-smartplayer id="' + esc(v.id) + '" style="display:block;margin:0 auto;width:100%;max-width:400px;"><div class="vturb-player-placeholder" style="position:relative;width:100%;padding:177.77777777777777% 0 0;z-index:0;background-color:black;"></div></vturb-smartplayer>', "video vturb");
+    el.querySelector(".vturb").setAttribute("aria-label", rotulo || "Vídeo");
+    if (v.script && !vturbCarregados.has(v.script)) {
+      vturbCarregados.add(v.script);
+      const sc = document.createElement("script"); sc.src = v.script; sc.async = true; document.head.appendChild(sc);
+    }
+    registrar("video_vturb", { video: chave });
+    await digitando(3500);
+  }
   async function dica(texto) { await esperar(300); return linha("ele", fmt(texto), "balao dica"); }
 
   async function avisoTeste(texto) {
@@ -1164,7 +1179,8 @@
     // Prova.
     await ele("Boa!! ✈️ \ndeixa eu te mostrar o que realmente muda pra quem entra no Vip — aí você vai entender o motivo de tanta gente migrar no mesmo dia 👇");
     await foto(IMG.carlosSantiago, "Carlos está na comunidade VIP e viajou pra Santiago por R$ 852 ida e volta 🇨🇱🔥", "Depoimento do Carlos, que viajou para Santiago");
-    await foto(IMG.julianaEgito, "Outro membro, Juliana foi para o Egito por R$ 3.576 ida e volta 🇪🇬", "Depoimento da Juliana, que viajou para o Egito");
+    await ele("E olha a *Renata* 👇 Ela sonhava em visitar o irmão que mora na *Austrália*, mas nunca achava uma passagem que coubesse no orçamento. Com a gente ela foi com a *família toda* e economizou *mais de 12 mil reais* 🇦🇺❤️");
+    await videoVturb("renata", "Depoimento em vídeo da Renata, que foi pra Austrália visitar o irmão");
     await ele("São mais de *17 mil clientes ativos* aproveitando as promoções da nossa Comunidade Vip todos os dias 🥰");
     await opcoes([{ texto: "Quero fazer parte!", principal: true }]);
     await ele("Legal");

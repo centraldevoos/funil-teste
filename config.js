@@ -16,6 +16,14 @@ window.CONFIG = {
     audioOferta: "",       // antes do cupom: por que entrar hoje
   },
 
+  // Depoimentos em vídeo no vturb (ConverteAI). id = o "vid-..." do código do player; script = o player.js do mesmo código.
+  VTURB: {
+    renata: {
+      id: "vid-6ad40e0ba884ed0eb81215af",
+      script: "https://scripts.converteai.net/00c8b9a1-000b-422f-abff-cb49b5ef54fa/players/6ad40e0ba884ed0eb81215af/v4/player.js",
+    },
+  },
+
   // Imagens do fluxo da DataCrazy, copiadas pra site/midia/fluxo/ (comprimidas em 800 px) pra não depender do CDN deles.
   IMAGENS: {
     tarifaAward: "midia/fluxo/tarifaAward.jpg",
