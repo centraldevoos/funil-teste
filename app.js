@@ -84,7 +84,7 @@
   const vibrarToque = () => { try { if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate(8); } catch (e) {} };
 
   // ---------- mensagens ----------
-  const avatar = () => '<div class="avatar"><img src="' + esc(C.AVATAR_URL || "midia/henrique.png") + '" alt="Henrique"></div>';
+  const avatar = () => '<div class="avatar"><img src="' + esc(C.AVATAR_URL || "midia/henrique-avatar.jpg") + '" alt="Henrique"></div>';
   let digEl = null, digSome = null;
   function mostrarDigitando() {
     clearTimeout(digSome);
@@ -138,10 +138,14 @@
   // Cartão que a pessoa usa na hora (diagnóstico, presente, oferta): aparece e já funciona, sem pausa depois.
   async function cartao(html, classe, ms) { await digitando(ms != null ? ms : 1100); return linha("ele", html, classe); }
   const eu = (texto) => linha("eu", esc(texto));
+  // Tamanho real das imagens do fluxo (midia/fluxo), pra reservar o espaço certo antes de carregar.
+  const TAMANHO_IMG = { tarifaAward: [800, 813], googleParis: [800, 1422], pagouParis: [800, 1200], viagemParis: [800, 1200], carlosSantiago: [800, 1007], julianaEgito: [800, 1007], comoAplicarCupom: [800, 1000] };
   async function foto(url, legenda, alt) {
     if (!url) return;
     await digitando(1100);
-    const el = linha("ele", '<figure style="margin:0"><img src="' + esc(url) + '" alt="' + esc(alt || "") + '">' + (legenda ? "<figcaption>" + fmt(legenda) + "</figcaption>" : "") + "</figure>", "balao foto");
+    const chave = (String(url).match(/([A-Za-z]+)\.(?:jpe?g|png|webp)$/) || [])[1];
+    const tam = TAMANHO_IMG[chave] ? ' width="' + TAMANHO_IMG[chave][0] + '" height="' + TAMANHO_IMG[chave][1] + '"' : "";
+    const el = linha("ele", '<figure style="margin:0"><img src="' + esc(url) + '"' + tam + ' alt="' + esc(alt || "") + '">' + (legenda ? "<figcaption>" + fmt(legenda) + "</figcaption>" : "") + "</figure>", "balao foto");
     el.querySelector("img").addEventListener("load", rolar);
     await digitando((legenda ? leitura(legenda.length) + 1200 : 2800) * calma);
   }
@@ -250,7 +254,7 @@
   }
 
   // Campo de texto da conversa (usado pra data e pra cidade de saída).
-  function campoTexto({ nome, placeholder, rotulo, sugestoes }) {
+  function campoTexto({ nome, placeholder, rotulo, sugestoes, atalhos }) {
     esconderDigitando(true);
     return new Promise((resolve) => {
       const f = document.createElement("form");
@@ -261,8 +265,18 @@
         (lista ? '<datalist id="' + lista + '">' + sugestoes.map((v) => '<option value="' + esc(v) + '">').join("") + "</datalist>" : "");
       const input = f.querySelector("input"), botao = f.querySelector("button");
       input.addEventListener("input", () => botao.classList.toggle("pronto", input.value.trim().length >= 2));
-      f.addEventListener("submit", (e) => { e.preventDefault(); if (input.value.trim().length < 2) return input.focus(); f.remove(); resolve(input.value.trim()); });
-      conversa.appendChild(f); rolar(true);
+      let chips = null;
+      const enviar = (v) => { f.remove(); if (chips) chips.remove(); resolve(v.trim()); };
+      f.addEventListener("submit", (e) => { e.preventDefault(); if (input.value.trim().length < 2) return input.focus(); enviar(input.value); });
+      conversa.appendChild(f);
+      if (atalhos && atalhos.length) {
+        chips = document.createElement("div");
+        chips.className = "opcoes";
+        chips.setAttribute("aria-label", "Sugestões");
+        atalhos.forEach((a) => { const b = document.createElement("button"); b.type = "button"; b.className = "opcao"; b.textContent = a; b.addEventListener("click", () => { vibrarToque(); enviar(a); }); chips.appendChild(b); });
+        conversa.appendChild(chips);
+      }
+      rolar(true);
       setTimeout(() => input.focus({ preventScroll: true }), 350);
     });
   }
@@ -657,7 +671,7 @@
       rotulo("📅 Datas de volta :") + "\n" + linhasDeDatas(p.volta) + "\n\n" +
       rotulo("💵 Valor em dinheiro :") + " R$ " + dinheiro(p.dinheiroTrecho) + " por trecho" +
       (p.semMilhas ? "" : "\n" + rotulo("🪙 Valor em milhas :") + " " + milhar(p.milhasIda) + " milhas " + esc(p.nomeMilhas) + " por trecho");
-    return '<div class="zap-linha"><img class="zap-avatar" src="midia/logo-central-de-voos.png" alt=""><div class="zap-msg">' +
+    return '<div class="zap-linha"><img class="zap-avatar" src="midia/logo-avatar.png" width="32" height="32" alt=""><div class="zap-msg">' +
       '<div class="zap-topo"><span class="zap-nome">' + esc(C.PROMO_REMETENTE || "Central de Voos") + "</span></div>" +
       '<div class="zap-img"><img src="' + esc(p.foto) + '" alt="' + esc(p.alt || "") + '"></div>' +
       '<div class="zap-texto">' + texto + '<span class="zap-hora">' + hora + "</span></div></div></div>";
@@ -828,7 +842,7 @@
   }
   async function perguntaQuando() {
     for (let tentativa = 0; ; tentativa++) {
-      const bruto = await campoTexto({ nome: "quando", placeholder: "Ex.: janeiro, 15/01, fim do ano…", rotulo: "Quando você pretende viajar" });
+      const bruto = await campoTexto({ nome: "quando", placeholder: "Ex.: janeiro, 15/01, fim do ano…", rotulo: "Quando você pretende viajar", atalhos: ["Fim de ano", "Férias de janeiro", "Carnaval", "Férias de julho", "Ainda não sei"] });
       eu(bruto);
       const q = lerQuando(bruto);
       registrar("resposta", { resposta: "quando:" + bruto });
@@ -1261,7 +1275,7 @@
     await ele("Esse é o seu *presente de Black Friday*: um *CUPOM exclusivo* pra acessar a Comunidade Vip com o maior desconto. APROVEITA!");
 
     const oferta = await cartao(
-      '<div class="oferta-topo"><img src="midia/logo-central-de-voos.png" alt=""><div><h3>Comunidade VIP</h3><p>Central de Voos</p></div><span class="off">55% OFF</span></div>' +
+      '<div class="oferta-topo"><img src="midia/logo-avatar.png" width="54" height="54" alt=""><div><h3>Comunidade VIP</h3><p>Central de Voos</p></div><span class="off">55% OFF</span></div>' +
       '<div class="oferta-corpo">' +
       '<div class="preco-de">De <s>R$ 67,06</s></div>' +
       '<div class="preco-por">R$ 30,18 <small>/ mês</small></div>' +
@@ -1270,7 +1284,7 @@
       '<div class="relogio"><span>⚠️ O cupom é por tempo limitado</span><b class="tempo">15:00</b></div>' +
       '<a class="cta" href="#" target="_blank" rel="noopener">Entrar para o VIP <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>' +
       '<div class="aviso">O link do checkout ainda não foi configurado (LINK_CHECKOUT em config.js).</div>' +
-      '<div class="garantia"><img class="selo-img" src="midia/selo-garantia-7-dias.png" alt="Selo de garantia de 7 dias"><span><b>Garantia de 7 dias.</b> Se não gostar, a gente devolve todo o seu dinheiro.</span></div>' +
+      '<div class="garantia"><img class="selo-img" src="midia/selo-garantia-7-dias-p.png" alt="Selo de garantia de 7 dias"><span><b>Garantia de 7 dias.</b> Se não gostar, a gente devolve todo o seu dinheiro.</span></div>' +
       "</div>",
       "cartao oferta", 1000
     );

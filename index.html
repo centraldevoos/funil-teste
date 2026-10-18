@@ -29,7 +29,7 @@
   :root {
     color-scheme: light;
     --fundo: #fafafa; --superficie: #ffffff; --bolha: #f0f1f3; --bolha-forte: #e7e9ec;
-    --tinta: #15171a; --tinta-2: #3d424a; --suave: #868c96; --linha: #e6e7ea;
+    --tinta: #15171a; --tinta-2: #3d424a; --suave: #646a73; --linha: #e6e7ea;
     --destaque: #2457d6; --destaque-hover: #1d47b3; --destaque-fundo: #edf2fd;
     --verde: #138a57; --verde-fundo: #e9f6ef;
     --sombra-flutua: 0 12px 32px -12px rgba(21, 23, 26, .18);
@@ -46,12 +46,13 @@
   body { background: var(--fundo); color: var(--tinta); font: 16px/1.55 "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif, "Noto Color Emoji"; -webkit-font-smoothing: antialiased; }
   button, input { font: inherit; color: inherit; }
   img { max-width: 100%; }
+  .so-leitor { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
   .pular { position: absolute; left: -999px; top: 8px; background: var(--tinta); color: #fff; padding: 8px 12px; border-radius: 8px; z-index: 30; }
   .pular:focus { left: 8px; }
 
   /* ---------- topo ---------- */
   header { position: sticky; top: 0; z-index: 10; background: rgba(255, 255, 255, .94); border-bottom: 1px solid var(--linha); animation: desce .5s var(--mola) both; }
-  .topo { max-width: 680px; margin: 0 auto; display: flex; align-items: center; gap: 12px; padding: 10px 16px; padding-top: max(10px, env(safe-area-inset-top)); }
+  .topo { max-width: 680px; margin: 0 auto; display: flex; align-items: center; gap: 12px; padding: 10px max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left)); padding-top: max(10px, env(safe-area-inset-top)); }
   .logo { width: 40px; height: 40px; border-radius: 11px; overflow: hidden; flex: none; background: #1b1b1b; }
   .logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .topo-texto { flex: 1; min-width: 0; line-height: 1.25; }
@@ -63,7 +64,7 @@
   .progresso i { display: block; height: 100%; width: 0; background: var(--destaque); border-radius: 0 3px 3px 0; transition: width .8s var(--mola); }
 
   /* ---------- conversa ---------- */
-  main { max-width: 680px; margin: 0 auto; padding: 24px 16px calc(160px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 6px; }
+  main { max-width: 680px; margin: 0 auto; padding: 24px max(16px, env(safe-area-inset-right)) calc(160px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); display: flex; flex-direction: column; gap: 6px; }
   .linha { display: flex; gap: 10px; align-items: flex-end; animation: entra .5s var(--mola) both; }
   .linha.eu { justify-content: flex-end; margin: 10px 0 8px; }
   .linha.ele:has(+ .linha.ele) .avatar { visibility: hidden; }
@@ -75,7 +76,7 @@
   .balao s { color: var(--suave); }
   .eu .balao { background: var(--tinta); color: #fff; font-weight: 500; border-bottom-left-radius: var(--r-bolha); border-bottom-right-radius: 6px; }
   .balao.foto { padding: 4px; background: var(--superficie); border: 1px solid var(--linha); }
-  .balao.foto img { display: block; width: 100%; max-width: 380px; border-radius: 16px; background: var(--bolha); min-height: 120px; object-fit: cover; }
+  .balao.foto img { display: block; width: 100%; max-width: 380px; height: auto; border-radius: 16px; background: var(--bolha); object-fit: cover; }
   .balao.foto figcaption { padding: 9px 11px 7px; color: var(--tinta-2); }
   .balao.dica { background: transparent; padding: 2px 4px; color: var(--suave); font-size: 14px; }
   .digitando { display: flex; gap: 5px; padding: 16px 18px; }
@@ -105,7 +106,7 @@
   .campo:focus-within { border-color: var(--destaque); box-shadow: 0 0 0 4px var(--destaque-fundo); }
   .campo input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 16px; padding: 8px 0; }
   .campo input::placeholder { color: var(--suave); }
-  .campo button { width: 42px; height: 42px; border: 0; border-radius: 50%; background: var(--bolha-forte); color: var(--suave); cursor: pointer; display: grid; place-items: center; transition: background .2s, color .2s, transform .15s var(--mola); }
+  .campo button { width: 44px; height: 44px; flex: none; border: 0; border-radius: 50%; background: var(--bolha-forte); color: var(--suave); cursor: pointer; display: grid; place-items: center; transition: background .2s, color .2s, transform .15s var(--mola); }
   .campo button.pronto { background: var(--destaque); color: #fff; }
   .campo button:active { transform: scale(.92); }
   .erro { margin: 6px 0 0 64px; color: #b4233c; font-size: 14px; }
@@ -182,7 +183,7 @@
   .cupom { display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1.5px dashed #c9ccd2; border-radius: 14px; padding: 10px 10px 10px 16px; margin: 16px 0; }
   .cupom span { font-size: 13px; color: var(--suave); display: block; }
   .cupom strong { font-size: 19px; letter-spacing: .06em; color: var(--tinta); }
-  .cupom button { border: 0; background: var(--bolha); color: var(--tinta); border-radius: 10px; padding: 10px 14px; font-weight: 650; font-size: 14px; cursor: pointer; transition: background .2s, transform .15s var(--mola); }
+  .cupom button { min-height: 44px; min-width: 64px; border: 0; background: var(--bolha); color: var(--tinta); border-radius: 10px; padding: 10px 14px; font-weight: 650; font-size: 14px; cursor: pointer; transition: background .2s, transform .15s var(--mola); }
   .cupom button:hover { background: var(--bolha-forte); } .cupom button:active { transform: scale(.95); }
   .relogio { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 14px; color: var(--tinta-2); background: var(--fundo); border-radius: var(--r-peq); padding: 10px 14px; }
   .relogio b { font-variant-numeric: tabular-nums; color: #b4233c; font-size: 16px; letter-spacing: .02em; }
@@ -195,7 +196,7 @@
   .garantia .selo-img { width: 76px; height: 76px; flex: none; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(180, 130, 30, .25)); }
   .rodape { max-width: 680px; margin: -110px auto 0; padding: 0 16px 40px; text-align: center; }
   .rodape[hidden] { display: none; }
-  .rodape button { background: none; border: 0; color: var(--suave); font-size: 12px; text-decoration: underline; cursor: pointer; padding: 6px; }
+  .rodape button { background: none; border: 0; color: var(--suave); font-size: 12px; text-decoration: underline; cursor: pointer; padding: 12px 10px; min-height: 44px; }
   .rodape ul { list-style: none; margin: 6px 0 0; padding: 0; font-size: 11.5px; color: var(--suave); text-align: left; display: grid; gap: 4px; }
   .rodape a { color: inherit; }
   .garantia .selo { width: 38px; height: 38px; flex: none; border-radius: 50%; background: var(--verde-fundo); color: var(--verde); display: grid; place-items: center; font-weight: 800; font-size: 13px; }
@@ -337,6 +338,7 @@
     </div>
     <div class="progresso" aria-hidden="true"><i id="barra"></i></div>
   </header>
+  <h1 class="so-leitor">Diagnóstico de economia em passagens, com o Henrique da Central de Voos</h1>
   <main id="conversa" aria-live="polite"></main>
   <footer class="rodape" hidden><button type="button" id="creditos">Créditos das imagens</button><ul id="lista-creditos" hidden></ul></footer>
   <noscript><p style="max-width:680px;margin:0 auto;padding:16px">Ative o JavaScript para conversar com o Henrique.</p></noscript>

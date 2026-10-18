@@ -1,7 +1,7 @@
 // Configuração do funil interativo. É o arquivo que se edita à mão antes de publicar.
 window.CONFIG = {
   // Foto do Henrique (fica em site/midia/).
-  AVATAR_URL: "midia/henrique.png",
+  AVATAR_URL: "midia/henrique-avatar.jpg",
 
   // Link do checkout do VIP no Hub.la (fica fora do repositório por segurança). Vazio = botão mostra um aviso.
   LINK_CHECKOUT: "",
