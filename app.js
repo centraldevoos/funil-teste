@@ -266,6 +266,23 @@
     el.querySelector("video").addEventListener("play", () => registrar("video", { video: chave }), { once: true });
   }
 
+  // ---------- imagem em tela cheia ----------
+  const visor = document.createElement("div");
+  visor.className = "visor"; visor.setAttribute("role", "dialog"); visor.setAttribute("aria-label", "Imagem ampliada"); visor.hidden = true;
+  visor.innerHTML = '<button type="button" class="visor-fechar" aria-label="Fechar">✕</button><img alt="">';
+  document.body.appendChild(visor);
+  const fecharVisor = () => { visor.hidden = true; document.documentElement.classList.remove("visor-aberto"); };
+  visor.addEventListener("click", fecharVisor);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !visor.hidden) fecharVisor(); });
+  conversa.addEventListener("click", (e) => {
+    const img = e.target.closest(".balao.foto img, .zap-img img");
+    if (!img) return;
+    const v = visor.querySelector("img");
+    v.src = img.currentSrc || img.src; v.alt = img.alt || "";
+    visor.hidden = false; document.documentElement.classList.add("visor-aberto");
+    registrar("abriu_imagem", {});
+  });
+
   // ---------- respostas ----------
   // Último movimento da pessoa na tela (a cutucada não aparece pra quem está lendo ou rolando).
   let ultimoMovimento = Date.now();
@@ -277,7 +294,7 @@
     return new Promise((resolve) => {
       const caixa = document.createElement("div");
       caixa.className = "opcoes" + (modo === "lista" ? " lista" : "");
-      const limite = 50000;
+      const limite = 70000;
       let cutucada, respondeu = false;
       const vigiar = (espera) => {
         cutucada = setTimeout(async () => {
@@ -935,8 +952,20 @@
   }
 
   // Cidade de saída escrita: a cidade com aeroporto da lista, ou o aeroporto grande mais próximo da cidade escrita.
+  // Tira o jeito de falar ("perto de", "moro em", "região de", "grande", "e região", "interior de"...) e fica só o lugar.
+  function limparLocal(t) {
+    let x = " " + t + " ";
+    for (let i = 0; i < 3; i++) {
+      x = x.replace(/^ (eu )?(moro|vivo|sou|saio|fico|estou|to|tou|resido|trabalho)( aqui)?( la)? (em|de|da|do|no|na|nos|nas|pra|para|perto|proximo|proxima|ao lado)? ?/, " ");
+      x = x.replace(/^ (zona|regiao|lado) (sul|norte|leste|oeste|central|centro|metropolitana)( do| da| de)? /, " ");
+      x = x.replace(/^ (bem |mais ou menos |aqui )?(perto|pertinho|proximo|proxima|ao lado|do lado|vizinho|vizinha|regiao metropolitana|regiao|interior|litoral|cidade|municipio|grande)( do| da| de| dos| das| a| ao)? /, " ");
+      x = x.replace(/^ (de|da|do|em|no|na|a|o) /, " ");
+    }
+    x = x.replace(/ (e regiao|e arredores|regiao|e proximidades|capital|cidade|centro|interior|aqui)+ $/, " ");
+    return x.trim() || t;
+  }
   async function resolverOrigem(texto) {
-    const t = expandirSigla(tirarAcento(texto));
+    const t = expandirSigla(limparLocal(tirarAcento(texto)));
     // Cidade de fora do Brasil que está na lista do mundo: sai do aeroporto dela.
     const fora = INDICE.get(t) || (t.length === 3 && MUNDO.find((m) => m.iata && m.iata.toLowerCase() === t));
     if (fora && fora.iso !== "BR" && fora.iata) return origemDeFora(fora);
@@ -1269,10 +1298,10 @@
     linha("ele", '<div class="cols"><div class="col vip"><h4>Comunidade Vip 👑</h4><ul>' + VIP.map((v) => '<li class="sim">' + esc(v) + "</li>").join("") + "</ul></div></div>", "cartao comparar um");
     await digitando(4000);
     linha("ele",
-      '<div class="cols"><div class="col vip"><h4>' + txt("bonusTitulo", "💥 E mais! Bônus de hoje") + '</h4><p class="bonus-sub">Que vão potencializar as suas economias:</p><ul>' +
+      '<div class="cols"><div class="col bonus-roxo"><h4>' + txt("bonusTitulo", "💥 E mais! Bônus de hoje") + '</h4><p class="bonus-sub">Que vão potencializar as suas economias:</p><ul>' +
       BONUS.map((b) => '<li class="sim"><span><b class="bonus-nome">' + b.icone + " " + b.titulo + "</b>" + b.texto + "</span></li>").join("") +
       '</ul><p class="bonus-rodape">Tudo isso <b>incluso</b> no VIP 👑</p></div></div>',
-      "cartao comparar um");
+      "cartao comparar um bonus");
     await digitando(3000);
     await opcoes([{ texto: "Quero ser VIP", principal: true }]);
     etapa(4);
@@ -1342,7 +1371,7 @@
     const faixa = faixaDe(destino, origem);
     await ele("Perfeito, *" + dados.nome + "*! Agora vou pesquisar a sua passagem entre as *promoções ativas* que o nosso sistema encontrou e calcular *quanto você pode economizar*. Leva só alguns segundinhos ⏳");
     let ativas;
-    do { ativas = 37 + Math.floor(Math.random() * 112); } while (ativas % 5 === 0);
+    do { ativas = 19 + Math.floor(Math.random() * 56); } while (ativas % 5 === 0);
     await carregando("Procurando promoções pra você, " + dados.nome, [
       "Conectando ao sistema de promoções da Central de Voos",
       "Saindo de " + origem.cidade + " (" + origem.iata + ") pra " + (destino.cidadeVoo || destino.cidade),
