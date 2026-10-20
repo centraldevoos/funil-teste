@@ -1117,10 +1117,11 @@
         '<div class="raios"></div><div class="halo"></div>' + faiscas +
         '<div class="facho"></div>' +
         '<div class="bilhete"><span class="b-topo">Presente de Black Friday</span><strong class="b-pct">55% OFF</strong><span class="b-linha"></span><span class="b-cupom">Cupom <b>' + esc(CUPOM) + "</b></span></div>" +
+        '<span class="anel-toque" aria-hidden="true"></span><span class="mao-toque" aria-hidden="true">👆</span>' +
         '<div class="caixa-bf" role="button" tabindex="0" aria-label="Abrir o presente"><div class="flutua">' + caixaSvg + "</div></div>" +
         '<div class="clarao"></div>' +
         "</div>" +
-        '<p class="bf-dica">Toque no presente para abrir 👆</p>' +
+        '<button type="button" class="bf-dica"><span class="bf-dica-mao" aria-hidden="true">👆</span> Toque pra abrir o presente</button>' +
         '<p class="revelado" hidden>Você ganhou o maior desconto da Black Friday! Use o cupom <b>' + esc(CUPOM) + "</b> pra entrar na Comunidade VIP.</p>",
         "cartao bf-cartao", 800
       );
