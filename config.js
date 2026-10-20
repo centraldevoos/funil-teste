@@ -44,15 +44,21 @@ window.CONFIG = {
 
   // Teste A/B. nome: o nome do teste (é como aparece no painel; troque o nome a cada teste novo).
   // pesos: % dos visitantes em cada versão. variantes: o que muda em cada versão; o que não estiver lá usa o padrão.
-  // Textos que podem mudar: abertura1, abertura2, botaoAbertura, perguntaDestino ({nome} vira o nome da pessoa),
-  // bonusTitulo e botaoOferta. Pra ver uma versão específica: ?v=B no fim do link.
-  // Este primeiro teste é A/A (as duas versões iguais): serve pra conferir se a divisão e o painel estão certos.
+  // O que pode mudar: abertura (lista de mensagens, uma bolha cada), abertura1, abertura2, botaoAbertura,
+  // perguntaDestino ({nome} vira o nome da pessoa), bonusTitulo e botaoOferta. Pra ver uma versão: ?v=A ou ?v=B no link.
+  // Teste atual (desde 20/10/2026): mensagens iniciais. A = as de sempre (2 bolhas); B = 3 bolhas curtas.
   EXPERIMENTO: {
-    nome: "aa-calibracao",
+    nome: "abertura-v1",
     pesos: { A: 50, B: 50 },
     variantes: {
       A: {},
-      B: {},
+      B: {
+        abertura: [
+          "Oii! ✈️",
+          "Preparei um *diagnóstico rápido* pra você 👇",
+          "Em *2 minutinhos* você descobre *quanto pode economizar* na sua próxima viagem. Bora??",
+        ],
+      },
     },
   },
 

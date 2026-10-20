@@ -12,6 +12,13 @@
   const conversa = document.getElementById("conversa");
   // Telefone que vem no link do WhatsApp (?telefone=5531999999999). O DDD escolhe o aeroporto de saída.
   const TELEFONE = (params.get("telefone") || "").replace(/\D/g, "");
+  // Nome que vem no link (?nome=Maria ou ?nome=Maria%20Silva): só a primeira palavra com letras, com a inicial maiúscula.
+  const NOME_LINK = (() => {
+    const m = (params.get("nome") || "").match(/\p{L}[\p{L}'’-]*/u);
+    if (!m || m[0].length < 2) return "";
+    const n = m[0].slice(0, 30);
+    return n.charAt(0).toUpperCase() + n.slice(1).toLowerCase();
+  })();
   let TOTAL = 8;
   const dados = { nome: "", ondeCompra: "", milhas: "", destino: null, quando: null, pessoas: 1, origem: null };
   const eventos = (window.dataLayer = window.dataLayer || []);
@@ -1155,19 +1162,26 @@
     if (teste && params.get("ir") === "presente") { dados.nome = "Teste"; await presenteBlackFriday(); return; }
 
     // Abertura: boas-vindas, o diagnóstico e a promessa do fim (texto do dono, 17/10/2026).
-    await ele(txt("abertura1", "✈️ Oii, que bom que você veio! Eu preparei um *diagnóstico rápido* pra você: em *menos de 2 minutos*, você descobre *o quanto* pode economizar na sua *próxima viagem*!"), 1100);
-    await ele(txt("abertura2", "E no final ainda te mostro como *pagar a metade do preço* nas passagens com a nossa Comunidade VIP. Bora??"));
+    const aberturaVersao = EXP && EXP.variantes && EXP.variantes[variante] && EXP.variantes[variante].abertura;
+    const abertura = Array.isArray(aberturaVersao) && aberturaVersao.length ? aberturaVersao : [
+      txt("abertura1", "✈️ Oii, que bom que você veio! Eu preparei um *diagnóstico rápido* pra você: em *menos de 2 minutos*, você descobre *o quanto* pode economizar na sua *próxima viagem*!"),
+      txt("abertura2", "E no final ainda te mostro como *pagar a metade do preço* nas passagens com a nossa Comunidade VIP. Bora??"),
+    ];
+    for (let i = 0; i < abertura.length; i++) await ele(String(abertura[i]), i === 0 ? 1100 : undefined);
     await opcoes([{ texto: txt("botaoAbertura", "SIM, Claro!"), principal: true }]);
     registrar("aceitou", {});
 
     // Somado ao fluxo: o nome, pra conversa ficar pessoal.
-    await ele("Boa! Como posso te chamar?");
-    dados.nome = await campoNome();
-    eu(dados.nome);
+    if (NOME_LINK) dados.nome = NOME_LINK;
+    else {
+      await ele("Boa! Como posso te chamar?");
+      dados.nome = await campoNome();
+      eu(dados.nome);
+    }
     etapa(1);
 
     // Onde compra.
-    await ele("Prazer, *" + dados.nome + "*! Certo, antes de te explicar eu preciso saber...\n\n*Onde costuma comprar suas passagens?*");
+    await ele((NOME_LINK ? "Boa, *" : "Prazer, *") + dados.nome + "*! Certo, antes de te explicar eu preciso saber...\n\n*Onde costuma comprar suas passagens?*");
     await dica("Caso você utilize outra opção, ou mais de uma opção listada, clique em \"Outra Opção\" 👇");
     const onde = await opcoes([{ texto: "Skyscanner" }, { texto: "Google Flights" }, { texto: "Site da empresa" }, { texto: "Outra Opção" }]);
     dados.ondeCompra = onde.texto;
