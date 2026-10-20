@@ -10,18 +10,20 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  /* Painel interno do funil interativo: quantas pessoas chegam em cada etapa, por versão do teste A/B. */
+  /* Painel interno do funil interativo: visitas, etapas, teste A/B, respostas, tráfego e horários. */
   :root {
-    --fundo: #f6f7f9; --superficie: #fff; --linha: #e6e8ec; --tinta: #15171a; --tinta-2: #3d424a; --suave: #646a73;
+    color-scheme: light;
+    --fundo: #f6f7f9; --superficie: #fff; --linha: #e6e8ec; --grade: #eef0f3; --tinta: #15171a; --tinta-2: #3d424a; --suave: #646a73;
     --azul: #2457d6; --azul-fundo: #edf2fd; --verde: #138a57; --verde-fundo: #e9f6ef; --vermelho: #b4233c; --vermelho-fundo: #fbecef;
-    --a: #2457d6; --b: #d97706; --c: #7c3aed; --d: #0f766e;
+    /* versões do teste A/B, em ordem fixa (validadas: daltonismo e contraste) */
+    --a: #2457d6; --b: #d97706; --c: #7c3aed; --d: #0d9488;
     --r: 16px;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
   body { background: var(--fundo); color: var(--tinta); font: 15px/1.5 "Geist", -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
   .topo { position: sticky; top: 0; z-index: 5; background: var(--superficie); border-bottom: 1px solid var(--linha); }
-  .topo-in { max-width: 1080px; margin: 0 auto; padding: 12px max(16px, env(safe-area-inset-left)); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .topo-in { max-width: 1120px; margin: 0 auto; padding: 12px max(16px, env(safe-area-inset-left)); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
   .marca { display: flex; align-items: center; gap: 10px; margin-right: auto; }
   .marca img { width: 36px; height: 36px; border-radius: 10px; background: #1b1b1b; }
   .marca strong { display: block; font-size: 16px; letter-spacing: -.01em; }
@@ -29,44 +31,77 @@
   .filtros { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
   select, .chave { font: inherit; font-size: 14px; color: var(--tinta); background: var(--superficie); border: 1px solid var(--linha); border-radius: 10px; padding: 8px 10px; min-height: 40px; }
   .chave { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
-  main { max-width: 1080px; margin: 0 auto; padding: 20px max(16px, env(safe-area-inset-left)) 48px; display: grid; gap: 16px; }
-  .cartao { background: var(--superficie); border: 1px solid var(--linha); border-radius: var(--r); padding: 18px; }
+  main { max-width: 1120px; margin: 0 auto; padding: 20px max(16px, env(safe-area-inset-left)) 48px; display: grid; gap: 16px; }
+  .grade-2 { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  .cartao { background: var(--superficie); border: 1px solid var(--linha); border-radius: var(--r); padding: 18px; min-width: 0; }
   .cartao h2 { margin: 0 0 4px; font-size: 16px; letter-spacing: -.01em; }
   .cartao .sub { margin: 0 0 14px; color: var(--suave); font-size: 13.5px; }
-  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+  /* números grandes */
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
   .kpi { background: var(--superficie); border: 1px solid var(--linha); border-radius: var(--r); padding: 14px 16px; }
   .kpi span { display: block; font-size: 13px; color: var(--suave); }
   .kpi b { display: block; font-size: clamp(26px, 6vw, 32px); font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1.15; margin-top: 4px; }
-  .kpi small { font-size: 12.5px; color: var(--suave); }
+  .kpi small { display: block; font-size: 12.5px; color: var(--suave); }
+  .delta { font-size: 12.5px; font-weight: 600; margin-top: 4px; display: inline-flex; gap: 4px; align-items: center; color: var(--tinta-2); }
+  .delta.sobe::before { content: "▲"; color: var(--verde); font-size: 10px; }
+  .delta.desce::before { content: "▼"; color: var(--vermelho); font-size: 10px; }
+  /* gráfico de colunas (uma série; detalhes no tooltip) */
+  .colunas { display: flex; align-items: flex-end; justify-content: space-between; gap: 3px; height: 180px; padding: 0 0 4px; border-bottom: 1px solid var(--linha); position: relative; }
+  .colunas .col { flex: 1; min-width: 0; max-width: 64px; height: 100%; display: flex; align-items: flex-end; cursor: default; }
+  .colunas .col i { display: block; width: 100%; background: var(--azul); border-radius: 4px 4px 0 0; min-height: 2px; transition: opacity .15s; }
+  .colunas .col:hover i { opacity: .75; }
+  .eixo { display: flex; justify-content: space-between; color: var(--suave); font-size: 12px; margin-top: 6px; }
+  .escala { position: absolute; left: 0; top: -2px; font-size: 11.5px; color: var(--suave); background: var(--superficie); padding: 0 6px 0 0; }
+  /* veredito A/B */
   .veredito { display: flex; gap: 12px; align-items: flex-start; }
   .veredito .ic { flex: none; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; font-size: 18px; background: var(--azul-fundo); }
   .veredito.ganhou .ic { background: var(--verde-fundo); }
   .veredito p { margin: 0; }
   .veredito .t { font-weight: 650; }
   .veredito .s { color: var(--suave); font-size: 13.5px; margin-top: 2px; }
+  /* funil */
   .legenda { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--tinta-2); margin-bottom: 10px; }
   .legenda i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
   .tabela { width: 100%; overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 560px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .funil table { min-width: 620px; }
   th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--linha); vertical-align: middle; }
   th { font-size: 12px; font-weight: 600; color: var(--suave); text-transform: uppercase; letter-spacing: .04em; }
-  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   tr.opcional td:first-child { color: var(--suave); }
   .etapa-nome { display: flex; flex-direction: column; }
-  .etapa-nome small { color: var(--suave); font-size: 12px; }
-  .barra { height: 8px; background: #eef0f3; border-radius: 99px; overflow: hidden; min-width: 80px; }
+  .etapa-nome small, td small { color: var(--suave); font-size: 12px; }
+  .barra { height: 8px; background: var(--grade); border-radius: 99px; overflow: hidden; min-width: 70px; }
   .barra i { display: block; height: 100%; border-radius: 99px; }
   .queda { font-size: 12px; color: var(--vermelho); }
   .queda.maior { background: var(--vermelho-fundo); padding: 1px 6px; border-radius: 6px; font-weight: 600; }
-  .vazio { text-align: center; color: var(--suave); padding: 36px 12px; }
+  /* respostas */
+  .respostas { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .pergunta h3 { margin: 0 0 10px; font-size: 14px; }
+  .opcao-resp { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; font-size: 13.5px; margin-bottom: 9px; }
+  .opcao-resp .nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .opcao-resp .val { color: var(--tinta-2); font-variant-numeric: tabular-nums; }
+  .opcao-resp .barra { grid-column: 1 / -1; height: 6px; }
+  .opcao-resp .barra i { background: var(--azul); }
+  .vazio { text-align: center; color: var(--suave); padding: 28px 12px; }
+  .vazio.peq { padding: 12px 0; text-align: left; font-size: 13.5px; }
+  .dispositivos { display: grid; gap: 10px; }
+  .disp { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 10px 12px; border: 1px solid var(--linha); border-radius: 12px; }
+  .disp b { font-size: 20px; font-variant-numeric: tabular-nums; }
+  .abas { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .abas button { font: inherit; font-size: 13.5px; border: 1px solid var(--linha); background: var(--superficie); color: var(--tinta-2); border-radius: 99px; padding: 6px 12px; cursor: pointer; min-height: 34px; }
+  .abas button[aria-selected="true"] { background: var(--tinta); border-color: var(--tinta); color: #fff; }
   .rodape { color: var(--suave); font-size: 12.5px; text-align: center; }
   .erro { color: var(--vermelho); }
-  @media (max-width: 640px) { .marca { width: 100%; } .filtros { width: 100%; } .filtros select { flex: 1; min-width: 0; } }
+  /* tooltip */
+  .dica { position: fixed; z-index: 20; pointer-events: none; background: var(--tinta); color: #fff; font-size: 12.5px; line-height: 1.45; padding: 8px 10px; border-radius: 10px; box-shadow: 0 8px 24px -8px rgba(0,0,0,.4); opacity: 0; transition: opacity .1s; max-width: 240px; }
+  .dica b { font-weight: 650; }
+  @media (max-width: 640px) { .marca { width: 100%; } .filtros { width: 100%; } .filtros select { flex: 1; min-width: 0; } .colunas { height: 140px; } }
 </style>
 </head>
 <body>
   <header class="topo"><div class="topo-in">
-    <div class="marca"><img src="midia/logo-avatar.png" alt=""><div><strong>Painel do funil</strong><span>Diagnóstico de economia · métricas por etapa e teste A/B</span></div></div>
+    <div class="marca"><img src="midia/logo-avatar.png" alt=""><div><strong>Painel do funil</strong><span>Diagnóstico de economia · métricas, etapas e testes A/B</span></div></div>
     <div class="filtros">
       <select id="dias" aria-label="Período"><option value="1">Últimas 24 h</option><option value="7" selected>Últimos 7 dias</option><option value="30">Últimos 30 dias</option><option value="90">Últimos 90 dias</option></select>
       <select id="experimento" aria-label="Teste A/B"></select>
@@ -76,19 +111,40 @@
   </div></header>
   <main>
     <section class="kpis" id="kpis"></section>
+    <section class="cartao"><h2 id="tituloSerie">Visitas por dia</h2><p class="sub">Passe o dedo ou o mouse nas colunas pra ver visitas, ofertas e checkouts.</p><div id="serie"></div></section>
     <section class="cartao" id="ab"></section>
-    <section class="cartao">
+    <section class="cartao funil">
       <h2>Funil por etapa</h2>
-      <p class="sub">Pessoas (sessões) que chegaram em cada etapa. A porcentagem é sobre quem abriu o site; em vermelho, quantos pararam ali.</p>
+      <p class="sub">Pessoas (sessões) que chegaram em cada etapa. A porcentagem é sobre quem abriu o site; em vermelho, quantos pararam ali. "Tempo" é a mediana desde que a pessoa abriu o site.</p>
       <div class="legenda" id="legenda"></div>
       <div class="tabela" id="funil"></div>
     </section>
+    <section class="cartao">
+      <h2>O que as pessoas responderam</h2>
+      <p class="sub">Respostas de cada pergunta no período (pessoas que escolheram cada opção).</p>
+      <div class="respostas" id="respostas"></div>
+    </section>
+    <section class="cartao">
+      <h2>De onde vêm as vendas</h2>
+      <p class="sub">Visitas e conversão por origem, campanha e anúncio (pelos parâmetros utm do link).</p>
+      <div class="abas" role="tablist" id="abasTrafego">
+        <button type="button" role="tab" data-tipo="fonte" aria-selected="true">Origem</button>
+        <button type="button" role="tab" data-tipo="campanha" aria-selected="false">Campanha</button>
+        <button type="button" role="tab" data-tipo="anuncio" aria-selected="false">Anúncio</button>
+      </div>
+      <div class="tabela" id="trafego"></div>
+    </section>
+    <div class="grade-2">
+      <section class="cartao"><h2>Celular × computador</h2><p class="sub">Visitas e quantas foram pro checkout.</p><div class="dispositivos" id="dispositivos"></div></section>
+      <section class="cartao"><h2>Horário das visitas</h2><p class="sub">Hora de Brasília em que as pessoas abriram o site.</p><div id="horas"></div></section>
+    </div>
     <p class="rodape" id="rodape">Carregando…</p>
   </main>
+  <div class="dica" id="dica" role="tooltip"></div>
 <script>
   // Endereço da função que devolve as métricas (Supabase, projeto CDV Financeiro).
   const API = "https://qjyswtxspktkqoyqjjwp.supabase.co/functions/v1/funil-metricas";
-  // As etapas do funil, na ordem. "opcional" = nem todo mundo passa (quem chega com telefone no link pula a cidade).
+  // Etapas do funil, na ordem. "opcional" = nem todo mundo passa (quem chega com telefone no link pula a cidade).
   const ETAPAS = [
     { ev: "inicio", nome: "Abriu o site" },
     { ev: "aceitou", nome: "Tocou em \"SIM, Claro!\"" },
@@ -107,24 +163,43 @@
     { ev: "checkout", nome: "Clicou em \"Entrar para o VIP\"", det: "foi pro checkout" },
     { ev: "copiou_cupom", nome: "Copiou o cupom", opcional: true },
   ];
+  const PERGUNTAS = [
+    ["onde_compra", "Onde costuma comprar passagens"], ["milhas", "Tem milhas?"], ["destino", "Destinos escolhidos"],
+    ["quando", "Quando pretende viajar"], ["pessoas", "Quantas pessoas viajam"], ["origem", "Cidade de saída"], ["duvida", "Dúvidas que mais tocaram"],
+  ];
   const CORES = ["var(--a)", "var(--b)", "var(--c)", "var(--d)"];
   const $ = (id) => document.getElementById(id);
   const fmt = (n) => Number(n || 0).toLocaleString("pt-BR");
   const pct = (a, b) => (b ? (a / b) * 100 : 0);
   const pctTxt = (v) => v.toLocaleString("pt-BR", { maximumFractionDigits: v < 10 ? 1 : 0 }) + "%";
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const tempo = (s) => (s == null ? "—" : s < 60 ? Math.round(s) + " s" : Math.floor(s / 60) + " min " + String(Math.round(s % 60)).padStart(2, "0") + " s");
 
-  // Probabilidade normal acumulada (pra confiança do teste A/B entre duas taxas).
+  // Tooltip: qualquer elemento com data-dica mostra o texto (HTML) ao passar o mouse ou tocar.
+  const dica = $("dica");
+  function mostrarDica(e) {
+    const alvo = e.target.closest("[data-dica]");
+    if (!alvo) { dica.style.opacity = 0; return; }
+    dica.innerHTML = alvo.getAttribute("data-dica");
+    const x = (e.touches ? e.touches[0].clientX : e.clientX), y = (e.touches ? e.touches[0].clientY : e.clientY);
+    const w = dica.offsetWidth, h = dica.offsetHeight;
+    dica.style.left = Math.min(Math.max(8, x - w / 2), innerWidth - w - 8) + "px";
+    dica.style.top = Math.max(8, y - h - 14) + "px";
+    dica.style.opacity = 1;
+  }
+  document.addEventListener("mousemove", mostrarDica);
+  document.addEventListener("touchstart", mostrarDica, { passive: true });
+  document.addEventListener("scroll", () => (dica.style.opacity = 0), { passive: true });
+
+  // Confiança do teste A/B entre duas taxas (teste de duas proporções).
   function phi(z) { const t = 1 / (1 + 0.2316419 * Math.abs(z)), d = 0.3989423 * Math.exp(-z * z / 2), p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274)))); return z > 0 ? 1 - p : p; }
   function comparar(c1, n1, c2, n2) {
     if (!n1 || !n2) return null;
     const p1 = c1 / n1, p2 = c2 / n2, p = (c1 + c2) / (n1 + n2), se = Math.sqrt(p * (1 - p) * (1 / n1 + 1 / n2));
     if (!se) return { p1, p2, conf: 0 };
-    const z = (p2 - p1) / se;
-    return { p1, p2, conf: 1 - 2 * (1 - phi(Math.abs(z))) };
+    return { p1, p2, conf: 1 - 2 * (1 - phi(Math.abs((p2 - p1) / se))) };
   }
 
-  let ultimo = null;
   function preencherFiltros(filtros) {
     const sel = (id, tipo, primeiro) => {
       const el = $(id), atual = el.value;
@@ -136,80 +211,137 @@
     sel("fonte", "fonte", "Todas as origens");
   }
 
-  function desenhar(dados) {
-    // contagem[variante][chave da etapa] = sessões
+  function kpis(d) {
+    const at = (d.resumo || []).find((r) => r.periodo === "atual") || {}, an = (d.resumo || []).find((r) => r.periodo === "anterior") || {};
+    const v = +at.visitas || 0, o = +at.ofertas || 0, c = +at.checkouts || 0, va = +an.visitas || 0, oa = +an.ofertas || 0, ca = +an.checkouts || 0;
+    const delta = (agora, antes, ehTaxa) => {
+      if (!antes) return '<span class="delta">sem dado no período anterior</span>';
+      const dif = ehTaxa ? agora - antes : pct(agora - antes, antes);
+      const txt = ehTaxa ? (dif >= 0 ? "+" : "") + dif.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " p.p." : (dif >= 0 ? "+" : "") + Math.round(dif) + "%";
+      return '<span class="delta ' + (dif > 0 ? "sobe" : dif < 0 ? "desce" : "") + '">' + txt + " vs período anterior</span>";
+    };
+    $("kpis").innerHTML = [
+      ["Visitas", fmt(v), "abriram o site", delta(v, va)],
+      ["Viram a oferta", fmt(o), pctTxt(pct(o, v)) + " das visitas", delta(o, oa)],
+      ["Foram pro checkout", fmt(c), pctTxt(pct(c, v)) + " das visitas", delta(c, ca)],
+      ["Conversão do funil", pctTxt(pct(c, v)), "checkout ÷ visitas", delta(pct(c, v), va ? pct(ca, va) : 0, true)],
+    ].map(([t, n, s, dl]) => '<div class="kpi"><span>' + t + "</span><b>" + n + "</b><small>" + s + "</small>" + dl + "</div>").join("");
+  }
+
+  function serie(d) {
+    const porHora = d.dias <= 1, agora = new Date();
+    $("tituloSerie").textContent = porHora ? "Visitas por hora" : "Visitas por dia";
+    // todos os dias (ou horas) do período, com zero onde não teve visita
+    const chaveDe = (dt) => porHora ? dt.getFullYear() + "-" + dt.getMonth() + "-" + dt.getDate() + "-" + dt.getHours() : dt.getFullYear() + "-" + dt.getMonth() + "-" + dt.getDate();
+    const mapa = {};
+    for (const p of d.serie || []) mapa[chaveDe(new Date(p.quando))] = p;
+    const n = porHora ? 24 : d.dias, pontos = [];
+    for (let i = n - 1; i >= 0; i--) {
+      const dt = new Date(agora);
+      if (porHora) dt.setHours(agora.getHours() - i, 0, 0, 0); else { dt.setHours(0, 0, 0, 0); dt.setDate(agora.getDate() - i); }
+      const p = mapa[chaveDe(dt)] || {};
+      pontos.push({ quando: dt, visitas: +p.visitas || 0, ofertas: +p.ofertas || 0, checkouts: +p.checkouts || 0 });
+    }
+    if (!pontos.some((p) => p.visitas)) { $("serie").innerHTML = '<div class="vazio">Sem visitas nesse período.</div>'; return; }
+    const max = Math.max(1, ...pontos.map((p) => p.visitas));
+    const rot = (dt) => porHora ? String(dt.getHours()).padStart(2, "0") + "h" : dt.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+    $("serie").innerHTML = '<div class="colunas"><span class="escala">máx. ' + fmt(max) + "</span>" + pontos.map((p) =>
+      '<div class="col" data-dica="<b>' + rot(p.quando) + "</b><br>" + fmt(p.visitas) + " visitas<br>" + fmt(p.ofertas) + " viram a oferta<br>" + fmt(p.checkouts) + ' checkouts"><i style="height:' + ((p.visitas / max) * 100).toFixed(1) + '%"></i></div>').join("") +
+      '</div><div class="eixo"><span>' + rot(pontos[0].quando) + "</span><span>" + rot(pontos[pontos.length - 1].quando) + "</span></div>";
+  }
+
+  function funilEab(d) {
     const contagem = {};
-    for (const l of dados.linhas) {
-      const v = l.variante || "A";
+    for (const l of d.linhas || []) {
+      const v = l.variante || "A", k = l.evento === "etapa" ? "etapa" + l.etapa : l.evento;
       contagem[v] = contagem[v] || {};
-      const k = l.evento === "etapa" ? "etapa" + l.etapa : l.evento;
       contagem[v][k] = (contagem[v][k] || 0) + Number(l.sessoes); // soma os testes quando o filtro é "todos"
     }
+    const tempos = {};
+    for (const t of d.tempos || []) tempos[t.evento === "etapa" ? "etapa" + t.etapa : t.evento] = t.mediana_s == null ? null : +t.mediana_s;
     const variantes = Object.keys(contagem).sort();
     const chave = (e) => (e.ev === "etapa" ? "etapa" + e.n : e.ev);
-    const total = (k) => variantes.reduce((t, v) => t + (contagem[v][k] || 0), 0);
-
     if (!variantes.length) {
-      $("kpis").innerHTML = "";
-      $("ab").innerHTML = '<div class="vazio">Ainda não há visitas nesse período' + ($("teste").checked ? " (dados de teste)" : "") + ".<br>Assim que o funil receber tráfego, os números aparecem aqui.</div>";
+      $("ab").innerHTML = '<h2>Teste A/B</h2><div class="vazio">Ainda não há visitas nesse período' + ($("teste").checked ? " (dados de teste)" : "") + ".<br>Assim que o funil receber tráfego, os números aparecem aqui.</div>";
       $("funil").innerHTML = ""; $("legenda").innerHTML = "";
       return;
     }
-
-    // Números grandes (somando as versões)
-    const visitas = total("inicio"), ofertas = total("oferta"), checkouts = total("checkout");
-    $("kpis").innerHTML = [
-      ["Visitas", fmt(visitas), "abriram o site"],
-      ["Viram a oferta", fmt(ofertas), pctTxt(pct(ofertas, visitas)) + " das visitas"],
-      ["Foram pro checkout", fmt(checkouts), pctTxt(pct(checkouts, visitas)) + " das visitas"],
-      ["Checkout / oferta", pctTxt(pct(checkouts, ofertas)), "de quem viu a oferta"],
-    ].map(([t, n, s]) => '<div class="kpi"><span>' + t + "</span><b>" + n + "</b><small>" + s + "</small></div>").join("");
-
-    // Teste A/B: compara a taxa de checkout (checkout ÷ visitas) entre as versões
-    let ab = "";
+    // A/B: taxa de checkout por versão
+    let ab;
     if (variantes.length < 2) {
       ab = '<div class="veredito"><div class="ic">🧪</div><div><p class="t">Só uma versão nesse filtro</p><p class="s">Escolha um teste com duas versões (A e B) pra comparar.</p></div></div>';
     } else {
-      const taxas = variantes.map((v) => ({ v, n: contagem[v].inicio || 0, c: contagem[v].checkout || 0 }));
-      taxas.sort((a, b) => pct(b.c, b.n) - pct(a.c, a.n));
+      const taxas = variantes.map((v) => ({ v, n: contagem[v].inicio || 0, c: contagem[v].checkout || 0 })).sort((a, b) => pct(b.c, b.n) - pct(a.c, a.n));
       const [melhor, segundo] = taxas, r = comparar(segundo.c, segundo.n, melhor.c, melhor.n);
-      const pouco = Math.min(melhor.n, segundo.n) < 100;
-      const dif = r && r.p1 ? ((r.p2 - r.p1) / r.p1) * 100 : 0;
-      const conf = r ? Math.round(r.conf * 100) : 0;
+      const pouco = Math.min(melhor.n, segundo.n) < 100, dif = r && r.p1 ? ((r.p2 - r.p1) / r.p1) * 100 : 0, conf = r ? Math.round(r.conf * 100) : 0;
       const ganhou = !pouco && conf >= 95;
       const titulo = ganhou ? "Versão " + melhor.v + " está ganhando" : pouco ? "Ainda é cedo pra decidir" : "Empate técnico por enquanto";
       const sub = taxas.map((t) => "<b>" + t.v + "</b>: " + pctTxt(pct(t.c, t.n)) + " (" + fmt(t.c) + " de " + fmt(t.n) + ")").join(" · ") +
-        (r && r.p1 ? " — " + melhor.v + " está " + Math.round(Math.abs(dif)) + "% " + (dif >= 0 ? "acima" : "abaixo") + ", com " + conf + "% de confiança." : ".") +
+        (r && r.p1 ? " — " + melhor.v + " está " + Math.round(Math.abs(dif)) + "% acima, com " + conf + "% de confiança." : ".") +
         (pouco ? " Espere pelo menos 100 visitas em cada versão." : ganhou ? " Já dá pra ficar com a versão " + melhor.v + "." : " Deixe rodar mais; o ideal é chegar a 95% de confiança.");
       ab = '<div class="veredito' + (ganhou ? " ganhou" : "") + '"><div class="ic">' + (ganhou ? "🏆" : "🧪") + '</div><div><p class="t">' + titulo + '</p><p class="s">Taxa de checkout (checkout ÷ visitas) — ' + sub + "</p></div></div>";
     }
     $("ab").innerHTML = "<h2>Teste A/B</h2>" + ab;
-
-    // Funil: uma coluna por versão
+    // Funil
     $("legenda").innerHTML = variantes.map((v, i) => '<span><i style="background:' + CORES[i % CORES.length] + '"></i>Versão ' + esc(v) + " · " + fmt(contagem[v].inicio || 0) + " visitas</span>").join("");
-    // maior queda de cada versão (entre etapas obrigatórias)
     const maiorQueda = {};
     for (const v of variantes) {
       let ant = null, max = 0;
-      for (const e of ETAPAS) { if (e.opcional) continue; const n = contagem[v][chave(e)] || 0; if (ant !== null && ant > 0) { const q = pct(ant - n, ant); if (q > max) { max = q; maiorQueda[v] = chave(e); } } ant = n; }
+      for (const e of ETAPAS) { if (e.opcional) continue; const n = contagem[v][chave(e)] || 0; if (ant > 0) { const q = pct(ant - n, ant); if (q > max) { max = q; maiorQueda[v] = chave(e); } } ant = n; }
     }
-    let html = "<table><thead><tr><th>Etapa</th>" + variantes.map((v) => '<th class="num">Versão ' + esc(v) + "</th><th></th>").join("") + "</tr></thead><tbody>";
+    let html = '<table><thead><tr><th>Etapa</th><th class="num">Tempo</th>' + variantes.map((v) => '<th class="num">Versão ' + esc(v) + "</th><th></th>").join("") + "</tr></thead><tbody>";
     const anterior = {};
     for (const e of ETAPAS) {
       const k = chave(e);
-      html += '<tr class="' + (e.opcional ? "opcional" : "") + '"><td><div class="etapa-nome">' + esc(e.nome) + (e.det ? "<small>" + esc(e.det) + "</small>" : "") + "</div></td>";
+      html += '<tr class="' + (e.opcional ? "opcional" : "") + '"><td><div class="etapa-nome">' + esc(e.nome) + (e.det ? "<small>" + esc(e.det) + "</small>" : "") + '</div></td><td class="num"><small>' + (k === "inicio" ? "0 s" : tempo(tempos[k])) + "</small></td>";
       variantes.forEach((v, i) => {
         const n = contagem[v][k] || 0, base = contagem[v].inicio || 0, p = pct(n, base);
-        let queda = "";
-        if (!e.opcional && anterior[v] != null && anterior[v] > 0 && n < anterior[v]) {
-          queda = '<div class="queda' + (maiorQueda[v] === k ? " maior" : "") + '">−' + pctTxt(pct(anterior[v] - n, anterior[v])) + "</div>";
-        }
-        html += '<td class="num">' + fmt(n) + " <small>(" + pctTxt(p) + ")</small>" + queda + '</td><td><div class="barra"><i style="width:' + Math.min(p, 100).toFixed(1) + "%;background:" + CORES[i % CORES.length] + '"></i></div></td>';
+        const queda = !e.opcional && anterior[v] > 0 && n < anterior[v] ? '<div class="queda' + (maiorQueda[v] === k ? " maior" : "") + '">−' + pctTxt(pct(anterior[v] - n, anterior[v])) + "</div>" : "";
+        html += '<td class="num">' + fmt(n) + " <small>(" + pctTxt(p) + ")</small>" + queda + '</td><td><div class="barra" data-dica="<b>' + esc(e.nome) + "</b><br>Versão " + esc(v) + ": " + fmt(n) + " (" + pctTxt(p) + ')"><i style="width:' + Math.min(p, 100).toFixed(1) + "%;background:" + CORES[i % CORES.length] + '"></i></div></td>';
         if (!e.opcional) anterior[v] = n;
       });
       html += "</tr>";
     }
     $("funil").innerHTML = html + "</tbody></table>";
+  }
+
+  function respostas(d) {
+    const por = {};
+    for (const r of d.respostas || []) (por[r.pergunta] = por[r.pergunta] || []).push({ valor: r.valor, n: +r.sessoes });
+    $("respostas").innerHTML = PERGUNTAS.map(([id, titulo]) => {
+      const lista = (por[id] || []).sort((a, b) => b.n - a.n), total = lista.reduce((t, x) => t + x.n, 0);
+      if (!lista.length) return '<div class="pergunta"><h3>' + titulo + '</h3><div class="vazio peq">Sem respostas ainda.</div></div>';
+      const mostra = lista.slice(0, 8), resto = lista.slice(8).reduce((t, x) => t + x.n, 0);
+      if (resto) mostra.push({ valor: "Outros (" + (lista.length - 8) + ")", n: resto });
+      return '<div class="pergunta"><h3>' + titulo + "</h3>" + mostra.map((x) => {
+        const p = pct(x.n, total);
+        return '<div class="opcao-resp" data-dica="<b>' + esc(x.valor) + "</b><br>" + fmt(x.n) + " pessoas · " + pctTxt(p) + '"><span class="nome">' + esc(x.valor) + '</span><span class="val">' + pctTxt(p) + " · " + fmt(x.n) + '</span><div class="barra"><i style="width:' + p.toFixed(1) + '%"></i></div></div>';
+      }).join("") + "</div>";
+    }).join("");
+  }
+
+  let tipoTrafego = "fonte", ultimo = null;
+  function trafego(d) {
+    const linhas = (d.segmentos || []).filter((s) => s.tipo === tipoTrafego && +s.visitas > 0).sort((a, b) => b.visitas - a.visitas).slice(0, 12);
+    if (!linhas.length) { $("trafego").innerHTML = '<div class="vazio peq">Sem visitas com esse dado no período.</div>'; return; }
+    $("trafego").innerHTML = '<table><thead><tr><th>' + { fonte: "Origem", campanha: "Campanha", anuncio: "Anúncio" }[tipoTrafego] + '</th><th class="num">Visitas</th><th class="num">Viu a oferta</th><th class="num">Checkout</th></tr></thead><tbody>' +
+      linhas.map((s) => "<tr><td>" + esc(s.valor) + '</td><td class="num">' + fmt(s.visitas) + '</td><td class="num">' + pctTxt(pct(s.ofertas, s.visitas)) + ' <small>(' + fmt(s.ofertas) + ')</small></td><td class="num"><b>' + pctTxt(pct(s.checkouts, s.visitas)) + "</b> <small>(" + fmt(s.checkouts) + ")</small></td></tr>").join("") + "</tbody></table>";
+  }
+  $("abasTrafego").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-tipo]"); if (!b) return;
+    tipoTrafego = b.dataset.tipo;
+    [...$("abasTrafego").children].forEach((x) => x.setAttribute("aria-selected", x === b ? "true" : "false"));
+    if (ultimo) trafego(ultimo);
+  });
+
+  function dispositivosEHoras(d) {
+    const seg = d.segmentos || [];
+    const disp = seg.filter((s) => s.tipo === "dispositivo" && +s.visitas > 0).sort((a, b) => b.visitas - a.visitas);
+    const totalV = disp.reduce((t, s) => t + +s.visitas, 0);
+    $("dispositivos").innerHTML = disp.length ? disp.map((s) => '<div class="disp"><span>' + (s.valor === "celular" ? "📱 Celular" : s.valor === "computador" ? "💻 Computador" : esc(s.valor)) + " <small>· " + pctTxt(pct(s.visitas, totalV)) + ' das visitas</small></span><span><b>' + fmt(s.visitas) + "</b> <small>· checkout " + pctTxt(pct(s.checkouts, s.visitas)) + "</small></span></div>").join("") : '<div class="vazio peq">Sem visitas no período.</div>';
+    const horas = Array.from({ length: 24 }, (_, h) => { const s = seg.find((x) => x.tipo === "hora" && +x.valor === h); return { h, v: s ? +s.visitas : 0, c: s ? +s.checkouts : 0 }; });
+    const max = Math.max(1, ...horas.map((x) => x.v));
+    $("horas").innerHTML = horas.some((x) => x.v) ? '<div class="colunas" style="height:120px">' + horas.map((x) => '<div class="col" data-dica="<b>' + String(x.h).padStart(2, "0") + "h</b><br>" + fmt(x.v) + " visitas<br>" + fmt(x.c) + ' checkouts"><i style="height:' + ((x.v / max) * 100).toFixed(1) + '%"></i></div>').join("") + '</div><div class="eixo"><span>00h</span><span>06h</span><span>12h</span><span>18h</span><span>23h</span></div>' : '<div class="vazio peq">Sem visitas no período.</div>';
   }
 
   async function carregar() {
@@ -222,7 +354,7 @@
       if (!r.ok) throw new Error("HTTP " + r.status);
       ultimo = await r.json();
       preencherFiltros(ultimo.filtros || []);
-      desenhar(ultimo);
+      kpis(ultimo); serie(ultimo); funilEab(ultimo); respostas(ultimo); trafego(ultimo); dispositivosEHoras(ultimo);
       $("rodape").textContent = "Atualizado às " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) + " · atualiza sozinho a cada minuto";
       $("rodape").classList.remove("erro");
     } catch (e) {

@@ -42,7 +42,8 @@
   // No modo teste (?teste=1) não grava nada, a não ser com ?metricas=1 (aí marca como teste e o painel separa).
   const SESSAO = window.crypto && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
   const gravar = !!C.METRICAS_URL && (!teste || params.get("metricas") === "1");
-  const EVENTOS_PAINEL = new Set(["inicio", "aceitou", "etapa", "promo_exemplo", "resultado", "abriu_presente", "oferta", "checkout", "copiou_cupom", "abriu_duvidas", "erro"]);
+  const EVENTOS_PAINEL = new Set(["inicio", "aceitou", "etapa", "promo_exemplo", "resultado", "abriu_presente", "oferta", "checkout", "copiou_cupom", "abriu_duvidas", "duvida", "resposta", "erro"]);
+  const INICIO_VISITA = Date.now();
   let filaMetricas = [];
   function despachar(saindo) {
     if (!gravar || !filaMetricas.length) return;
@@ -60,13 +61,17 @@
   }
   function anotar(evento, extra) {
     if (!gravar || !EVENTOS_PAINEL.has(evento)) return;
+    if (evento === "resposta" && !(extra && extra.pergunta)) return; // só as respostas marcadas com a pergunta
     const d = dados.destino;
     filaMetricas.push({
       sessao: SESSAO, experimento: EXP ? EXP.nome : null, variante, evento, etapa: extra && extra.etapa,
       destino: d && d.cidade, regiao: d ? regiaoDe(d) : null, origem: dados.origem && dados.origem.cidade, pessoas: dados.pessoas,
       utm_source: params.get("utm_source"), utm_medium: params.get("utm_medium"), utm_campaign: params.get("utm_campaign"), utm_term: params.get("utm_term"),
       dispositivo: window.innerWidth < 768 ? "celular" : "computador", teste,
-      extra: evento === "erro" ? { onde: extra && extra.onde } : evento === "resultado" ? { economia: extra && extra.economia } : null,
+      extra: Object.assign({ ms: Date.now() - INICIO_VISITA },
+        evento === "erro" ? { onde: extra && extra.onde } : null,
+        evento === "resultado" ? { economia: extra && extra.economia } : null,
+        evento === "resposta" || evento === "duvida" ? { pergunta: extra.pergunta, valor: String(extra.valor || "").slice(0, 60) } : null),
     });
     if (evento === "inicio" || evento === "checkout") despachar(evento === "checkout");
   }
@@ -1166,6 +1171,7 @@
     await dica("Caso você utilize outra opção, ou mais de uma opção listada, clique em \"Outra Opção\" 👇");
     const onde = await opcoes([{ texto: "Skyscanner" }, { texto: "Google Flights" }, { texto: "Site da empresa" }, { texto: "Outra Opção" }]);
     dados.ondeCompra = onde.texto;
+    registrar("resposta", { pergunta: "onde_compra", valor: onde.texto });
     const award = "e essa tarifa award é a tarifa promocional mais em conta que existe";
     const europa = "faz uma passagem ida e volta pra Europa sair de R$4.438 pra R$2.341, por exemplo 😜";
     if (onde.texto === "Skyscanner") {
@@ -1196,6 +1202,7 @@
     await ele("Você já tem milhas aéreas suficientes pra viajar?");
     const milhas = await opcoes([{ texto: "SIM muitas!" }, { texto: "SIM, poucas" }, { texto: "Não tenho nada" }]);
     dados.milhas = milhas.texto;
+    registrar("resposta", { pergunta: "milhas", valor: milhas.texto });
     if (milhas.texto === "SIM muitas!") {
       await ele("Perfeito! Então você já consegue aproveitar as passagens com milhas..");
       await ele("O grande problema que você deve enfrentar então é encontrar essas passagens, que ficam escondidas para o destino que você quer, e na data que pode ir...");
@@ -1279,6 +1286,7 @@
     const regiao = REGIOES_ESCRITAS[tirarAcento(digitado)];
     const destino = await resolverDestino(regiao ? regiao.destino : digitado);
     dados.destino = destino;
+    registrar("resposta", { pergunta: "destino", valor: destino.cidade });
     etapa(5);
     if (regiao) await ele(regiao.frase);
     else await ele(destino.bandeira ? destino.bandeira + " " + destino.cidade + ", que sonho!" : destino.cidade + ", que sonho! ✈️");
@@ -1288,10 +1296,12 @@
     await ele("E *quando* você pretende viajar?");
     const quando = await perguntaQuando();
     dados.quando = quando;
+    registrar("resposta", { pergunta: "quando", valor: !quando ? "Sem data" : quando.asap ? "O quanto antes" : quando.festas ? "Fim de ano" : quando.mes ? NOMES_MESES[quando.mes.getMonth()].replace("marco", "março").replace(/^./, (c) => c.toUpperCase()) : "Sem data" });
     etapa(6);
     await ele("E *quantas pessoas* costumam viajar com você, contando você?");
     const pessoas = await opcoes([{ valor: 1, texto: "Só eu" }, { valor: 2, texto: "2 pessoas" }, { valor: 3, texto: "3 pessoas" }, { valor: 4, texto: "4 ou mais" }]);
     dados.pessoas = pessoas.valor;
+    registrar("resposta", { pergunta: "pessoas", valor: pessoas.texto });
     etapa(7);
     let origem = origemDoTelefone;
     if (!origem) {
@@ -1312,6 +1322,7 @@
       origem = { texto: a[0], cidade: a[0], iata: alt, lat: a[1], lon: a[2] };
     }
     dados.origem = origem;
+    registrar("resposta", { pergunta: "origem", valor: origem.cidade + (origemDoTelefone ? " (pelo DDD)" : "") });
 
     // O cálculo, a promoção e, embaixo dela, quanto a pessoa economiza nela.
     const faixa = faixaDe(destino, origem);
@@ -1425,6 +1436,7 @@
     await ele("Claro! Qual é a sua dúvida?");
     while (restantes.length) {
       const escolha = await opcoes([...restantes.map((d) => ({ texto: d[0] })), { texto: "Quero entrar no VIP", principal: true }]);
+      registrar("duvida", { pergunta: "duvida", valor: escolha.texto });
       if (escolha.texto === "Quero entrar no VIP") break;
       const i = restantes.findIndex((d) => d[0] === escolha.texto);
       await ele(restantes[i][1]);
