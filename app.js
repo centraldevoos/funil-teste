@@ -1095,7 +1095,6 @@
     // Abertura: boas-vindas, o diagnóstico e a promessa do fim (texto do dono, 17/10/2026).
     await ele("✈️ Oii, que bom que você veio! Eu preparei um *diagnóstico rápido* pra você: em *menos de 2 minutos*, você descobre *o quanto* pode economizar na sua *próxima viagem*!", 1100);
     await ele("E no final ainda te mostro como *pagar a metade do preço* nas passagens com a nossa Comunidade VIP. Bora??");
-    await audio("audioBoasVindas");
     await opcoes([{ texto: "SIM, Claro!", principal: true }]);
     registrar("aceitou", {});
 
@@ -1269,7 +1268,6 @@
     let promo = null;
     try { promo = await mostrarPromo(destino, origem, quando, dados.milhas === "Não tenho nada"); } catch (e) { console.error(e); registrar("erro", { onde: "promo", msg: String(e) }); }
     if (promo) await cartaoEconomia(promo, destino, faixa);
-    await audio("audioResultado");
     await opcoes([{ texto: "Quero receber promoções assim!" }]);
     await ele("É exatamente isso que chega todos os dias pra quem é da *Comunidade VIP*: a promoção com as datas, o valor em dinheiro e em milhas, pra você decidir rápido, antes de acabar ✈️");
 
@@ -1283,7 +1281,6 @@
     );
     await ele("E como você chegou até aqui, " + dados.nome + ", separei um *presente de Black Friday* pra você 🖤🎁");
     await presenteBlackFriday();
-    await audio("audioOferta");
     await ele("Esse é o seu *presente de Black Friday*: um *CUPOM exclusivo* pra acessar a Comunidade Vip com o maior desconto. APROVEITA!");
 
     const oferta = await cartao(
