@@ -379,9 +379,9 @@
     "Suporte individual", "Garantia de 7 dias",
   ];
   const BONUS = [
-    "Acesso ao <b>curso completo</b> em Vídeo Aulas, bem explicativas, de como decolar no mundo das milhas.",
-    "Acesso ao suporte <b>INDIVIDUAL</b> de nossa Advogada especializada em direito do viajante.",
-    "Acesso ao <b>Grupo de Estratégias</b> - como acumular, multiplicar milhas, cartões, salas VIP e oportunidades em primeira mão.",
+    { icone: "🎓", titulo: "Curso completo de milhas", texto: "Vídeo aulas bem explicativas de como decolar no mundo das milhas." },
+    { icone: "⚖️", titulo: "Advogada do viajante", texto: "Suporte <b>individual</b> com a nossa advogada especializada em direito do viajante." },
+    { icone: "🚀", titulo: "Grupo de Estratégias", texto: "Como acumular e multiplicar milhas, cartões, salas VIP e oportunidades em primeira mão." },
   ];
 
   // ---------- promoção de exemplo (o "print" do WhatsApp) ----------
@@ -1190,7 +1190,11 @@
     await digitando(2000);
     linha("ele", '<div class="cols"><div class="col vip"><h4>Comunidade Vip 👑</h4><ul>' + VIP.map((v) => '<li class="sim">' + esc(v) + "</li>").join("") + "</ul></div></div>", "cartao comparar um");
     await digitando(4000);
-    linha("ele", '<p class="titulo">💥 E mais! Incríveis bônus, <i>somente hoje</i>, que vão potencializar suas economias:</p><ul>' + BONUS.map((b) => "<li><span>" + b + "</span></li>").join("") + "</ul>", "cartao bonus");
+    linha("ele",
+      '<div class="bonus-topo"><span class="bonus-selo">Só hoje</span><p class="titulo">💥 E mais! Bônus exclusivos que vão potencializar suas economias</p></div>' +
+      '<ul>' + BONUS.map((b, i) => '<li style="animation-delay:' + (0.15 + i * 0.18).toFixed(2) + 's"><span class="bonus-icone" aria-hidden="true">' + b.icone + '</span><span class="bonus-txt"><b class="bonus-nome">' + b.titulo + ' <span class="bonus-tag">Incluso</span></b>' + b.texto + "</span></li>").join("") + "</ul>" +
+      '<p class="bonus-rodape">Tudo isso <b>incluso</b> na Comunidade VIP 👑</p>',
+      "cartao bonus");
     await digitando(3000);
     await opcoes([{ texto: "Quero ser VIP", principal: true }]);
     etapa(4);
