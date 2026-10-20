@@ -34,9 +34,10 @@
   const descer = document.createElement("button");
   descer.type = "button"; descer.className = "descer"; descer.setAttribute("aria-label", "Ir para a última mensagem");
   descer.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg><i></i>';
+  descer.tabIndex = -1;
   document.body.appendChild(descer);
   descer.addEventListener("click", () => { seguir = true; descer.classList.remove("ver", "nova"); window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }); });
-  window.addEventListener("scroll", () => { seguir = pertoDoFim(); descer.classList.toggle("ver", !seguir); if (seguir) descer.classList.remove("nova"); }, { passive: true });
+  window.addEventListener("scroll", () => { seguir = pertoDoFim(); descer.classList.toggle("ver", !seguir); descer.tabIndex = seguir ? -1 : 0; if (seguir) descer.classList.remove("nova"); }, { passive: true });
   const escrevendo = () => document.activeElement && document.activeElement.tagName === "INPUT";
   const rolar = (forcar) => requestAnimationFrame(() => { if (forcar !== true && escrevendo()) return; if (forcar === true || seguir) window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }); else descer.classList.add("ver", "nova"); });
   function registrar(evento, extra) {
@@ -59,15 +60,17 @@
   let audioCtx = null;
   function destravarSom() {
     try {
-      if (navigator.audioSession) navigator.audioSession.type = "playback";
+      if (navigator.audioSession) navigator.audioSession.type = "ambient";
       audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
       if (audioCtx.state !== "running") audioCtx.resume();
       // um instante de silêncio, tocado dentro do toque: é o que libera o som no iOS
       const b = audioCtx.createBuffer(1, 1, 22050), src = audioCtx.createBufferSource();
       src.buffer = b; src.connect(audioCtx.destination); src.start(0);
     } catch (e) { audioCtx = null; }
+    if (audioCtx && audioCtx.state === "running") eventosSom.forEach((ev) => window.removeEventListener(ev, destravarSom));
   }
-  ["pointerdown", "touchend", "keydown"].forEach((ev) => window.addEventListener(ev, destravarSom, { passive: true }));
+  const eventosSom = ["pointerdown", "touchend", "keydown"];
+  eventosSom.forEach((ev) => window.addEventListener(ev, destravarSom, { passive: true }));
   function somMensagem() {
     if (!audioCtx || audioCtx.state !== "running" || document.hidden) return;
     // "ploc" macio de bolha: duas notas curtinhas subindo (sem o apito agudo de antes), passando por um filtro que tira o chiado
@@ -211,7 +214,9 @@
         cutucada = setTimeout(async () => {
           const parado = Date.now() - ultimoMovimento;
           if (parado < limite) return vigiar(limite - parado);
-          await digitando(1200);
+          if (respondeu) return;
+          mostrarDigitando();
+          await esperar(1200);
           if (!respondeu) linha("ele", fmt("👆👆\nAguardo a sua resposta para te ajudar a economizar nas suas passagens! 🤝✈️"));
         }, espera);
       };
@@ -245,7 +250,8 @@
           return input.focus();
         }
         f.remove(); if (erro) erro.remove();
-        const n = input.value.trim().split(/\s+/)[0];
+        // só a primeira palavra com letras (ignora símbolos, números e o que não for nome)
+        const n = (input.value.match(/\p{L}[\p{L}'’-]*/u) || [""])[0];
         resolve(n.charAt(0).toUpperCase() + n.slice(1).toLowerCase());
       });
       conversa.appendChild(f); rolar(true);
@@ -412,8 +418,8 @@
   };
   function origemPorTelefone() {
     let t = TELEFONE;
-    if (t.length >= 12 && t.startsWith("55")) t = t.slice(2);
-    if (t.length < 10) return null;
+    if ((t.length === 12 || t.length === 13) && t.startsWith("55")) t = t.slice(2);
+    else if (t.length !== 10 && t.length !== 11) return null;
     const iata = DDD_AEROPORTO[Number(t.slice(0, 2))];
     if (!iata) return null;
     const a = AEROPORTOS[iata];
@@ -780,7 +786,7 @@
       bloco("Ida e volta, por pessoa", ciaPessoa, vipPessoa) +
       (pessoas > 1 ? bloco("Ida e volta, " + quem, normal, naPromo) : "") +
       '<div class="rotulo">' + (pessoas > 1 ? "Juntando todo mundo, vocês economizam" : "Você economiza") + '</div>' +
-      '<div class="numero"><small>R$</small><span>0</span></div>' +
+      '<div class="numero" aria-live="off"><small>R$</small><span>0</span></div>' +
       '<div class="letra-mida">Preço nas companhias aéreas: média do valor vendido no site das companhias pra essa rota, nas mesmas datas.</div>',
       "cartao resultado"
     );
@@ -1029,7 +1035,7 @@
         abriu = true;
         registrar("abriu_presente", {});
         destravarSom();
-        try { if (audioCtx) await audioCtx.resume(); } catch (e) {}
+        try { if (audioCtx) await Promise.race([audioCtx.resume(), espera(300)]); } catch (e) {}
         dica.classList.add("some");
         cartaoBf.classList.remove("tocavel");
         caixa.removeAttribute("role"); caixa.removeAttribute("tabindex");
@@ -1193,8 +1199,7 @@
     // Prova.
     await ele("Boa!! ✈️ \ndeixa eu te mostrar o que realmente muda pra quem entra no Vip — aí você vai entender o motivo de tanta gente migrar no mesmo dia 👇");
     await foto(IMG.carlosSantiago, "Carlos está na comunidade VIP e viajou pra Santiago por R$ 852 ida e volta 🇨🇱🔥", "Depoimento do Carlos, que viajou para Santiago");
-    await ele("E olha a *Renata* 👇 Ela sonhava em visitar o irmão que mora na *Austrália*, mas nunca achava uma passagem que coubesse no orçamento. Com a gente ela foi com a *família toda* e economizou *mais de 12 mil reais* 🇦🇺❤️");
-    await videoVturb("renata", "Depoimento em vídeo da Renata, que foi pra Austrália visitar o irmão");
+    await foto(IMG.julianaEgito, "Outro membro, Juliana foi para o Egito por R$ 3.576 ida e volta 🇪🇬", "Depoimento da Juliana, que viajou para o Egito");
     await ele("São mais de *17 mil clientes ativos* aproveitando as promoções da nossa Comunidade Vip todos os dias 🥰");
     await opcoes([{ texto: "Quero fazer parte!", principal: true }]);
     await ele("Legal");
@@ -1203,8 +1208,14 @@
     const origemDoTelefone = origemPorTelefone();
     TOTAL = origemDoTelefone ? 7 : 8;
     await ele("Como estamos no período da *Black Friday*, eu vou te dar um presente, " + dados.nome + ", mas antes me conta: *para onde você quer viajar?* Pode ser qualquer lugar do mundo 🌎");
-    const digitado = await campoDestino();
+    let digitado = await campoDestino();
     eu(digitado);
+    while (/\b(nao sei|sei la|qualquer|tanto faz|nenhum|ainda nao|nao tenho|indiferente|sem destino)\b/.test(tirarAcento(digitado))) {
+      await ele("Tudo bem! Escolhe um desses (ou escreve outro lugar) que eu te mostro como fica a economia 👇");
+      digitado = await campoDestino();
+      eu(digitado);
+    }
+    mostrarDigitando();
     const regiao = REGIOES_ESCRITAS[tirarAcento(digitado)];
     const destino = await resolverDestino(regiao ? regiao.destino : digitado);
     dados.destino = destino;
@@ -1228,6 +1239,7 @@
       for (let tentativa = 0; !origem; tentativa++) {
         const bruto = await campoTexto({ nome: "origem", placeholder: "Sua cidade", rotulo: "Cidade de saída", sugestoes: Object.values(AEROPORTOS).map((a) => a[0]) });
         eu(bruto);
+        mostrarDigitando();
         origem = await resolverOrigem(bruto);
         if (!origem && tentativa >= 1) origem = { texto: "São Paulo", cidade: "São Paulo", iata: "GRU", lat: -23.43, lon: -46.47 };
         else if (!origem) await ele("Não achei essa cidade 😅 Pode escrever de novo, com o nome completo?");
@@ -1281,7 +1293,7 @@
       '<div class="preco-por">R$ 30,18 <small>/ mês</small></div>' +
       '<div class="preco-nota">na assinatura anual</div>' +
       '<div class="cupom"><div><span>🚨 Cupom exclusivo</span><strong>' + esc(CUPOM) + '</strong></div><button type="button" class="copiar">Copiar</button></div>' +
-      '<div class="relogio"><span>⚠️ O cupom é por tempo limitado</span><b class="tempo">15:00</b></div>' +
+      '<div class="relogio" aria-live="off"><span>⚠️ O cupom é por tempo limitado</span><b class="tempo">15:00</b></div>' +
       '<a class="cta" href="#" target="_blank" rel="noopener">Entrar para o VIP <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>' +
       '<div class="aviso">O link do checkout ainda não foi configurado (LINK_CHECKOUT em config.js).</div>' +
       '<div class="garantia"><img class="selo-img" src="midia/selo-garantia-7-dias-p.png" alt="Selo de garantia de 7 dias"><span><b>Garantia de 7 dias.</b> Se não gostar, a gente devolve todo o seu dinheiro.</span></div>' +
@@ -1298,16 +1310,21 @@
     });
     const cta = oferta.querySelector(".cta");
     if (C.LINK_CHECKOUT) {
-      const url = new URL(C.LINK_CHECKOUT, location.href);
-      ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"].forEach((k) => params.get(k) && url.searchParams.set(k, params.get(k)));
-      if (TELEFONE && !params.get("utm_content")) url.searchParams.set("utm_content", TELEFONE);
-      cta.href = url.toString();
+      try {
+        const url = new URL(C.LINK_CHECKOUT, location.href);
+        ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"].forEach((k) => params.get(k) && url.searchParams.set(k, params.get(k)));
+        if (TELEFONE && !params.get("utm_content")) url.searchParams.set("utm_content", TELEFONE);
+        cta.href = url.toString();
+      } catch (e) { console.error("LINK_CHECKOUT inválido", e); }
     }
+    let ultimoToque = 0;
     let clicou = false;
     let fila = Promise.resolve();
     const emFila = (fn) => (fila = fila.then(fn).catch((e) => console.error(e)));
     cta.addEventListener("click", async (e) => {
       if (!C.LINK_CHECKOUT) { e.preventDefault(); oferta.querySelector(".aviso").style.display = "block"; }
+      else if (Date.now() - ultimoToque < 2500) { e.preventDefault(); return; }
+      ultimoToque = Date.now();
       registrar("checkout", { destino: dados.destino && dados.destino.cidade });
       if (clicou) return;
       clicou = true;
@@ -1321,7 +1338,7 @@
     });
     setTimeout(() => emFila(async () => {
       if (clicou) return;
-      await ele("Lembrando que esse desconto é exclusivo e só fica liberado até hoje meia-noite, não esqueça de aplicar o CUPOM!");
+      await ele("Lembrando que esse desconto é exclusivo e só fica liberado por *poucos minutos*, não esqueça de aplicar o CUPOM!");
       await ele("depois você só consegue comprar o acesso quando abrirmos as vagas novamente e com o valor normal 🙁");
     }), 90000 * ritmo);
     setTimeout(() => emFila(() => duvidas(cta)), 120000 * ritmo);

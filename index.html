@@ -8,19 +8,10 @@
 <meta name="description" content="Em poucos minutos, o Henrique te mostra quanto você pode economizar na sua próxima viagem.">
 <meta property="og:title" content="Quanto você pode economizar na sua próxima viagem?">
 <meta property="og:description" content="Uma conversa rápida com o Henrique, da Central de Voos.">
-<meta property="og:image" content="midia/logo-central-de-voos.png">
+<meta property="og:image" content="https://centraldevoos.github.io/funil-teste/midia/logo-central-de-voos.png">
 <meta name="theme-color" content="#ffffff">
 <link rel="icon" href="midia/logo-icone.png">
 <link rel="apple-touch-icon" href="midia/logo-icone.png">
-<!-- vturb: carregamento mais rápido do vídeo da Renata (código do próprio vturb) -->
-<script>!function(i,n){i._plt=i._plt||(n&&n.timeOrigin?n.timeOrigin+n.now():Date.now())}(window,performance);</script>
-<link rel="preload" href="https://scripts.converteai.net/00c8b9a1-000b-422f-abff-cb49b5ef54fa/players/6ad40e0ba884ed0eb81215af/v4/player.js" as="script">
-<link rel="preload" href="https://scripts.converteai.net/lib/js/smartplayer-wc/v4/smartplayer.js" as="script">
-<link rel="preload" href="https://cdn.converteai.net/00c8b9a1-000b-422f-abff-cb49b5ef54fa/6ad40e02c2b513935f99c00f/main.m3u8" as="fetch">
-<link rel="dns-prefetch" href="https://cdn.converteai.net">
-<link rel="dns-prefetch" href="https://scripts.converteai.net">
-<link rel="dns-prefetch" href="https://images.converteai.net">
-<link rel="dns-prefetch" href="https://license.vturb.com">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Noto+Color+Emoji&display=swap" rel="stylesheet">
@@ -41,8 +32,9 @@
   html, body { overscroll-behavior-y: none; }
   body { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   html { scroll-behavior: smooth; }
-  html, body { margin: 0; min-height: 100%; overflow-x: hidden; }
-  @supports (overflow-x: clip) { html, body { overflow-x: clip; } }
+  html, body { margin: 0; min-height: 100%; }
+  html { overflow-x: hidden; }
+  @supports (overflow-x: clip) { html { overflow-x: clip; } }
   body { background: var(--fundo); color: var(--tinta); font: 16px/1.55 "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif, "Noto Color Emoji"; -webkit-font-smoothing: antialiased; }
   button, input { font: inherit; color: inherit; }
   img { max-width: 100%; }
@@ -51,13 +43,13 @@
   .pular:focus { left: 8px; }
 
   /* ---------- topo ---------- */
-  header { position: sticky; top: 0; z-index: 10; background: rgba(255, 255, 255, .94); border-bottom: 1px solid var(--linha); animation: desce .5s var(--mola) both; }
+  header { position: sticky; top: 0; z-index: 10; background: #fff; box-shadow: 0 1px 0 rgba(21, 23, 26, .04), 0 6px 16px -14px rgba(21, 23, 26, .35); border-bottom: 1px solid var(--linha); animation: desce .5s var(--mola) both; }
   .topo { max-width: 680px; margin: 0 auto; display: flex; align-items: center; gap: 12px; padding: 10px max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left)); padding-top: max(10px, env(safe-area-inset-top)); }
   .logo { width: 40px; height: 40px; border-radius: 11px; overflow: hidden; flex: none; background: #1b1b1b; }
   .logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .topo-texto { flex: 1; min-width: 0; line-height: 1.25; }
   .topo-texto strong { display: block; font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
-  .topo-texto span { font-size: 13px; color: var(--suave); }
+  .topo-texto span { display: block; font-size: 13px; color: var(--suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #etapa { font-size: 13px; font-weight: 600; color: var(--destaque); background: var(--destaque-fundo); padding: 5px 11px; border-radius: 99px; white-space: nowrap; font-variant-numeric: tabular-nums; }
   #etapa.pula { animation: pula .45s var(--mola); }
   .progresso { height: 3px; background: transparent; }
@@ -169,10 +161,11 @@
   .bonus li { display: grid; grid-template-columns: 22px 1fr; align-items: start; }
   .bonus li::before { content: "☑"; color: #b7811f; }
   .oferta { padding: 0; overflow: hidden; max-width: 520px; }
-  .oferta-topo { background: var(--tinta); color: #fff; padding: 20px; display: flex; gap: 14px; align-items: center; }
+  .oferta-topo { background: var(--tinta); color: #fff; padding: 18px 16px; display: flex; gap: 14px; align-items: center; }
   .oferta-topo img { width: 54px; height: 54px; border-radius: 14px; object-fit: cover; flex: none; }
-  .oferta-topo h3 { margin: 0; font-size: clamp(17px, 5vw, 20px); letter-spacing: -.02em; line-height: 1.15; }
-  .oferta-topo > div { min-width: 0; }
+  .oferta-topo h3 { margin: 0; white-space: nowrap; font-size: clamp(16px, 4.6vw, 20px); letter-spacing: -.02em; line-height: 1.15; }
+  .oferta-topo > div { min-width: 0; flex: 1; }
+  .linha.ele:has(> .oferta) .avatar { display: none; }
   .oferta-topo p { margin: 2px 0 0; color: #aeb3bb; font-size: 14px; }
   .oferta-topo .off { margin-left: auto; align-self: flex-start; background: #fff; color: var(--tinta); font-weight: 800; font-size: 14px; padding: 4px 10px; border-radius: 8px; white-space: nowrap; }
   .oferta-corpo { padding: 20px; }
@@ -333,7 +326,7 @@
   <header>
     <div class="topo">
       <div class="logo"><img src="midia/logo-icone.png" alt="Central de Voos"></div>
-      <div class="topo-texto"><strong>Central de Voos</strong><span>Diagnóstico de economia em passagens</span></div>
+      <div class="topo-texto"><strong>Central de Voos</strong><span>Diagnóstico de economia</span></div>
       <div id="etapa" aria-live="polite">0 de 7</div>
     </div>
     <div class="progresso" aria-hidden="true"><i id="barra"></i></div>
