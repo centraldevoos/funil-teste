@@ -1255,10 +1255,10 @@
     linha("ele", '<div class="cols"><div class="col vip"><h4>Comunidade Vip 👑</h4><ul>' + VIP.map((v) => '<li class="sim">' + esc(v) + "</li>").join("") + "</ul></div></div>", "cartao comparar um");
     await digitando(4000);
     linha("ele",
-      '<div class="bonus-topo"><span class="bonus-selo">Só hoje</span><p class="titulo">' + txt("bonusTitulo", "💥 E mais! Bônus exclusivos que vão potencializar suas economias") + '</p></div>' +
-      '<ul>' + BONUS.map((b, i) => '<li style="animation-delay:' + (0.15 + i * 0.18).toFixed(2) + 's"><span class="bonus-icone" aria-hidden="true">' + b.icone + '</span><span class="bonus-txt"><b class="bonus-nome">' + b.titulo + ' <span class="bonus-tag">Incluso</span></b>' + b.texto + "</span></li>").join("") + "</ul>" +
-      '<p class="bonus-rodape">Tudo isso <b>incluso</b> na Comunidade VIP 👑</p>',
-      "cartao bonus");
+      '<div class="cols"><div class="col vip"><h4>' + txt("bonusTitulo", "💥 E mais! Bônus de hoje") + '</h4><p class="bonus-sub">Que vão potencializar as suas economias:</p><ul>' +
+      BONUS.map((b) => '<li class="sim"><span><b class="bonus-nome">' + b.icone + " " + b.titulo + "</b>" + b.texto + "</span></li>").join("") +
+      '</ul><p class="bonus-rodape">Tudo isso <b>incluso</b> no VIP 👑</p></div></div>',
+      "cartao comparar um");
     await digitando(3000);
     await opcoes([{ texto: "Quero ser VIP", principal: true }]);
     etapa(4);
