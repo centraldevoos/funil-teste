@@ -60,17 +60,15 @@
   let audioCtx = null;
   function destravarSom() {
     try {
-      if (navigator.audioSession) navigator.audioSession.type = "ambient";
+      if (navigator.audioSession) navigator.audioSession.type = "playback";
       audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
       if (audioCtx.state !== "running") audioCtx.resume();
       // um instante de silêncio, tocado dentro do toque: é o que libera o som no iOS
       const b = audioCtx.createBuffer(1, 1, 22050), src = audioCtx.createBufferSource();
       src.buffer = b; src.connect(audioCtx.destination); src.start(0);
     } catch (e) { audioCtx = null; }
-    if (audioCtx && audioCtx.state === "running") eventosSom.forEach((ev) => window.removeEventListener(ev, destravarSom));
   }
-  const eventosSom = ["pointerdown", "touchend", "keydown"];
-  eventosSom.forEach((ev) => window.addEventListener(ev, destravarSom, { passive: true }));
+  ["pointerdown", "touchend", "keydown"].forEach((ev) => window.addEventListener(ev, destravarSom, { passive: true }));
   function somMensagem() {
     if (!audioCtx || audioCtx.state !== "running" || document.hidden) return;
     // "ploc" macio de bolha: duas notas curtinhas subindo (sem o apito agudo de antes), passando por um filtro que tira o chiado
