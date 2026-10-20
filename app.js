@@ -49,12 +49,14 @@
   }
 
   // ---------- topo ----------
+  // Barra de progresso no estilo do vturb: anda rápido no começo (parece que vai ser rapidinho) e vai
+  // desacelerando perto do fim. Sem mostrar "x de y" (contar etapas pode espantar).
   function etapa(n) {
-    const pill = document.getElementById("etapa");
-    pill.textContent = n + " de " + TOTAL;
-    pill.classList.remove("pula"); void pill.offsetWidth; pill.classList.add("pula");
-    document.getElementById("barra").style.width = (n / TOTAL) * 100 + "%";
+    const p = Math.max(0, Math.min(n / TOTAL, 1));
+    progresso(0.06 + 0.84 * (1 - Math.pow(1 - p, 2.2)));
   }
+  // Depois das perguntas, o resto do caminho (promoção → presente → oferta) completa a barra devagar.
+  function progresso(fracao) { document.getElementById("barra").style.width = (Math.min(fracao, 1) * 100).toFixed(1) + "%"; }
 
   // ---------- som ----------
   let audioCtx = null;
@@ -1085,7 +1087,7 @@
   async function roteiro() {
     registrar("inicio", {});
     TOTAL = origemPorTelefone() ? 7 : 8;
-    document.getElementById("etapa").textContent = "0 de " + TOTAL;
+    etapa(0);
     await esperar(500);
     // Só no modo teste: ?teste=1&ir=presente pula direto pro presente de Black Friday.
     if (teste && params.get("ir") === "presente") { dados.nome = "Teste"; await presenteBlackFriday(); return; }
@@ -1265,6 +1267,7 @@
     ], 4000);
     let promo = null;
     try { promo = await mostrarPromo(destino, origem, quando, dados.milhas === "Não tenho nada"); } catch (e) { console.error(e); registrar("erro", { onde: "promo", msg: String(e) }); }
+    progresso(0.94);
     if (promo) await cartaoEconomia(promo, destino, faixa);
     await opcoes([{ texto: "Quero receber promoções assim!" }]);
     await ele("É exatamente isso que chega todos os dias pra quem é da *Comunidade VIP*: a promoção com as datas, o valor em dinheiro e em milhas, pra você decidir rápido, antes de acabar ✈️");
@@ -1278,9 +1281,11 @@
       "cartao", 900
     );
     await ele("E como você chegou até aqui, " + dados.nome + ", separei um *presente de Black Friday* pra você 🖤🎁");
+    progresso(0.97);
     await presenteBlackFriday();
     await ele("Esse é o seu *presente de Black Friday*: um *CUPOM exclusivo* pra acessar a Comunidade Vip com o maior desconto. APROVEITA!");
 
+    progresso(1);
     const oferta = await cartao(
       '<div class="oferta-topo"><img src="midia/logo-avatar.png" width="54" height="54" alt=""><div><h3>Comunidade VIP</h3><p>Central de Voos</p></div><span class="off">55% OFF</span></div>' +
       '<div class="oferta-corpo">' +
