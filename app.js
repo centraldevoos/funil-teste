@@ -211,7 +211,7 @@
   async function cartao(html, classe, ms) { await digitando(ms != null ? ms : 1100); return linha("ele", html, classe); }
   const eu = (texto) => linha("eu", esc(texto));
   // Tamanho real das imagens do fluxo (midia/fluxo), pra reservar o espaço certo antes de carregar.
-  const TAMANHO_IMG = { tarifaAward: [800, 813], googleParis: [800, 1422], pagouParis: [800, 1200], viagemParis: [800, 1200], carlosSantiago: [800, 1007], julianaEgito: [800, 1007], comoAplicarCupom: [800, 1000] };
+  const TAMANHO_IMG = { tarifaAward: [800, 813], googleParis: [800, 1422], pagouParis: [800, 1200], viagemParis: [800, 1200], carlosSantiago: [800, 1008], julianaEgito: [800, 1000], comoAplicarCupom: [800, 1000] };
   async function foto(url, legenda, alt) {
     if (!url) return;
     await digitando(1100);
@@ -1250,7 +1250,7 @@
       await ele("Perfeito! Então você já consegue aproveitar as passagens com milhas..");
       await ele("O grande problema que você deve enfrentar então é encontrar essas passagens, que ficam escondidas para o destino que você quer, e na data que pode ir...");
       await ele("lembrando que você n pode demorar muito, pq essas promoções Awards acabam bem rápido");
-      await ele("ainda bem que temos uma Comunidade VIP, lá são enviadas mais de 100 promoções todos os dias!");
+      await ele("ainda bem que temos uma Comunidade VIP, lá são enviadas mais de 150 promoções todos os dias!");
       await opcoes([{ texto: "Quero saber mais!", principal: true }]);
     } else {
       if (milhas.texto === "SIM, poucas") {
