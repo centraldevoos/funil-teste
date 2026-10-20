@@ -15,6 +15,61 @@
   let TOTAL = 8;
   const dados = { nome: "", ondeCompra: "", milhas: "", destino: null, quando: null, pessoas: 1, origem: null };
   const eventos = (window.dataLayer = window.dataLayer || []);
+
+  // ---------- teste A/B ----------
+  const EXP = C.EXPERIMENTO && C.EXPERIMENTO.nome ? C.EXPERIMENTO : null;
+  const variante = (() => {
+    if (!EXP) return null;
+    const nomes = Object.keys(EXP.variantes || { A: {} });
+    const forcada = (params.get("v") || "").toUpperCase();
+    if (nomes.includes(forcada)) return forcada;
+    const chave = "funil_variante_" + EXP.nome;
+    try { const salva = localStorage.getItem(chave); if (nomes.includes(salva)) return salva; } catch (e) {}
+    const pesos = EXP.pesos || {}, total = nomes.reduce((t, n) => t + (pesos[n] != null ? pesos[n] : 1), 0);
+    let r = Math.random() * total, v = nomes[0];
+    for (const n of nomes) { r -= pesos[n] != null ? pesos[n] : 1; if (r < 0) { v = n; break; } }
+    try { localStorage.setItem(chave, v); } catch (e) {}
+    return v;
+  })();
+  // Texto que pode mudar por versão: usa o da variante, se tiver; senão o padrão. {nome} vira o nome da pessoa.
+  const txt = (chave, padrao) => {
+    const o = EXP && EXP.variantes && EXP.variantes[variante] ? EXP.variantes[variante][chave] : null;
+    return String(o != null ? o : padrao).replace(/\{nome\}/g, dados.nome || "");
+  };
+
+  // ---------- métricas (painel) ----------
+  // Cada visita é uma sessão anônima. Os eventos vão em lotes pra função do Supabase (sem nome nem telefone).
+  // No modo teste (?teste=1) não grava nada, a não ser com ?metricas=1 (aí marca como teste e o painel separa).
+  const SESSAO = window.crypto && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
+  const gravar = !!C.METRICAS_URL && (!teste || params.get("metricas") === "1");
+  const EVENTOS_PAINEL = new Set(["inicio", "aceitou", "etapa", "promo_exemplo", "resultado", "abriu_presente", "oferta", "checkout", "copiou_cupom", "abriu_duvidas", "erro"]);
+  let filaMetricas = [];
+  function despachar(saindo) {
+    if (!gravar || !filaMetricas.length) return;
+    const corpo = JSON.stringify(filaMetricas.splice(0, 40));
+    try {
+      if (saindo && navigator.sendBeacon) navigator.sendBeacon(C.METRICAS_URL, new Blob([corpo], { type: "text/plain" }));
+      else fetch(C.METRICAS_URL, { method: "POST", body: corpo, headers: { "Content-Type": "text/plain" }, keepalive: true }).catch(() => {});
+    } catch (e) {}
+    if (filaMetricas.length) despachar(saindo);
+  }
+  if (gravar) {
+    setInterval(despachar, 3000);
+    window.addEventListener("pagehide", () => despachar(true));
+    document.addEventListener("visibilitychange", () => { if (document.hidden) despachar(true); });
+  }
+  function anotar(evento, extra) {
+    if (!gravar || !EVENTOS_PAINEL.has(evento)) return;
+    const d = dados.destino;
+    filaMetricas.push({
+      sessao: SESSAO, experimento: EXP ? EXP.nome : null, variante, evento, etapa: extra && extra.etapa,
+      destino: d && d.cidade, regiao: d ? regiaoDe(d) : null, origem: dados.origem && dados.origem.cidade, pessoas: dados.pessoas,
+      utm_source: params.get("utm_source"), utm_medium: params.get("utm_medium"), utm_campaign: params.get("utm_campaign"), utm_term: params.get("utm_term"),
+      dispositivo: window.innerWidth < 768 ? "celular" : "computador", teste,
+      extra: evento === "erro" ? { onde: extra && extra.onde } : evento === "resultado" ? { economia: extra && extra.economia } : null,
+    });
+    if (evento === "inicio" || evento === "checkout") despachar(evento === "checkout");
+  }
   const CUPOM = C.CUPOM || "BOASVINDAS";
 
   // ---------- utilidades ----------
@@ -41,7 +96,8 @@
   const escrevendo = () => document.activeElement && document.activeElement.tagName === "INPUT";
   const rolar = (forcar) => requestAnimationFrame(() => { if (forcar !== true && escrevendo()) return; if (forcar === true || seguir) window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }); else descer.classList.add("ver", "nova"); });
   function registrar(evento, extra) {
-    eventos.push({ event: "funil_" + evento, ...extra });
+    eventos.push({ event: "funil_" + evento, ...extra, variante });
+    try { anotar(evento, extra); } catch (e) {}
     if (typeof window.fbq === "function") {
       if (evento === "resultado") window.fbq("track", "Lead");
       if (evento === "checkout") window.fbq("track", "InitiateCheckout");
@@ -52,6 +108,7 @@
   // Barra de progresso no estilo do vturb: anda rápido no começo (parece que vai ser rapidinho) e vai
   // desacelerando perto do fim. Sem mostrar "x de y" (contar etapas pode espantar).
   function etapa(n) {
+    if (n > 0) registrar("etapa", { etapa: n });
     const p = Math.max(0, Math.min(n / TOTAL, 1));
     progresso(0.06 + 0.84 * (1 - Math.pow(1 - p, 2.2)));
   }
@@ -1093,9 +1150,9 @@
     if (teste && params.get("ir") === "presente") { dados.nome = "Teste"; await presenteBlackFriday(); return; }
 
     // Abertura: boas-vindas, o diagnóstico e a promessa do fim (texto do dono, 17/10/2026).
-    await ele("✈️ Oii, que bom que você veio! Eu preparei um *diagnóstico rápido* pra você: em *menos de 2 minutos*, você descobre *o quanto* pode economizar na sua *próxima viagem*!", 1100);
-    await ele("E no final ainda te mostro como *pagar a metade do preço* nas passagens com a nossa Comunidade VIP. Bora??");
-    await opcoes([{ texto: "SIM, Claro!", principal: true }]);
+    await ele(txt("abertura1", "✈️ Oii, que bom que você veio! Eu preparei um *diagnóstico rápido* pra você: em *menos de 2 minutos*, você descobre *o quanto* pode economizar na sua *próxima viagem*!"), 1100);
+    await ele(txt("abertura2", "E no final ainda te mostro como *pagar a metade do preço* nas passagens com a nossa Comunidade VIP. Bora??"));
+    await opcoes([{ texto: txt("botaoAbertura", "SIM, Claro!"), principal: true }]);
     registrar("aceitou", {});
 
     // Somado ao fluxo: o nome, pra conversa ficar pessoal.
@@ -1191,7 +1248,7 @@
     linha("ele", '<div class="cols"><div class="col vip"><h4>Comunidade Vip 👑</h4><ul>' + VIP.map((v) => '<li class="sim">' + esc(v) + "</li>").join("") + "</ul></div></div>", "cartao comparar um");
     await digitando(4000);
     linha("ele",
-      '<div class="bonus-topo"><span class="bonus-selo">Só hoje</span><p class="titulo">💥 E mais! Bônus exclusivos que vão potencializar suas economias</p></div>' +
+      '<div class="bonus-topo"><span class="bonus-selo">Só hoje</span><p class="titulo">' + txt("bonusTitulo", "💥 E mais! Bônus exclusivos que vão potencializar suas economias") + '</p></div>' +
       '<ul>' + BONUS.map((b, i) => '<li style="animation-delay:' + (0.15 + i * 0.18).toFixed(2) + 's"><span class="bonus-icone" aria-hidden="true">' + b.icone + '</span><span class="bonus-txt"><b class="bonus-nome">' + b.titulo + ' <span class="bonus-tag">Incluso</span></b>' + b.texto + "</span></li>").join("") + "</ul>" +
       '<p class="bonus-rodape">Tudo isso <b>incluso</b> na Comunidade VIP 👑</p>',
       "cartao bonus");
@@ -1210,7 +1267,7 @@
     // Somado ao fluxo: destino, quando, quantas pessoas e de onde sai (pelo DDD do telefone do link).
     const origemDoTelefone = origemPorTelefone();
     TOTAL = origemDoTelefone ? 7 : 8;
-    await ele("Como estamos no período da *Black Friday*, eu vou te dar um presente, " + dados.nome + ", mas antes me conta: *para onde você quer viajar?* Pode ser qualquer lugar do mundo 🌎");
+    await ele(txt("perguntaDestino", "Como estamos no período da *Black Friday*, eu vou te dar um presente, {nome}, mas antes me conta: *para onde você quer viajar?* Pode ser qualquer lugar do mundo 🌎"));
     let digitado = await campoDestino();
     eu(digitado);
     while (/\b(nao sei|sei la|qualquer|tanto faz|nenhum|ainda nao|nao tenho|indiferente|sem destino)\b/.test(tirarAcento(digitado))) {
@@ -1290,6 +1347,7 @@
     await ele("Esse é o seu *presente de Black Friday*: um *CUPOM exclusivo* pra acessar a Comunidade Vip com o maior desconto. APROVEITA!");
 
     progresso(1);
+    registrar("oferta", {});
     const oferta = await cartao(
       '<div class="oferta-topo"><img src="midia/logo-avatar.png" width="54" height="54" alt=""><div><h3>Comunidade VIP</h3><p>Central de Voos</p></div><span class="off">55% OFF</span></div>' +
       '<div class="oferta-corpo">' +
@@ -1298,7 +1356,7 @@
       '<div class="preco-nota">na assinatura anual</div>' +
       '<div class="cupom"><div><span>🚨 Cupom exclusivo</span><strong>' + esc(CUPOM) + '</strong></div><button type="button" class="copiar">Copiar</button></div>' +
       '<div class="relogio" aria-live="off"><span>⚠️ O cupom é por tempo limitado</span><b class="tempo">15:00</b></div>' +
-      '<a class="cta" href="#" target="_blank" rel="noopener">Entrar para o VIP <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>' +
+      '<a class="cta" href="#" target="_blank" rel="noopener">' + txt("botaoOferta", "Entrar para o VIP") + ' <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>' +
       '<div class="aviso">O link do checkout ainda não foi configurado (LINK_CHECKOUT em config.js).</div>' +
       '<div class="garantia"><img class="selo-img" src="midia/selo-garantia-7-dias-p.png" alt="Selo de garantia de 7 dias"><span><b>Garantia de 7 dias.</b> Se não gostar, a gente devolve todo o seu dinheiro.</span></div>' +
       "</div>",

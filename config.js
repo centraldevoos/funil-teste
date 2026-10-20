@@ -38,6 +38,24 @@ window.CONFIG = {
   // Promoção no fim do funil (o "print" do WhatsApp com a promoção pro destino da pessoa).
   //   "simulada" = gerada pelo site a partir das respostas (protótipo pra apresentação).
   //   "api"      = promoção real do sistema da Central de Voos (a TI integra; contrato no README).
+  // Métricas pro painel (painel.html): função do Supabase (projeto CDV Financeiro) que grava os eventos anônimos.
+  // Vazio = não grava nada.
+  METRICAS_URL: "https://qjyswtxspktkqoyqjjwp.supabase.co/functions/v1/funil-evento",
+
+  // Teste A/B. nome: o nome do teste (é como aparece no painel; troque o nome a cada teste novo).
+  // pesos: % dos visitantes em cada versão. variantes: o que muda em cada versão; o que não estiver lá usa o padrão.
+  // Textos que podem mudar: abertura1, abertura2, botaoAbertura, perguntaDestino ({nome} vira o nome da pessoa),
+  // bonusTitulo e botaoOferta. Pra ver uma versão específica: ?v=B no fim do link.
+  // Este primeiro teste é A/A (as duas versões iguais): serve pra conferir se a divisão e o painel estão certos.
+  EXPERIMENTO: {
+    nome: "aa-calibracao",
+    pesos: { A: 50, B: 50 },
+    variantes: {
+      A: {},
+      B: {},
+    },
+  },
+
   PROMOS_FONTE: "simulada",
   PROMOS_API_URL: "",
   // Nome do remetente no print, como um contato salvo (com a foto do logo ao lado).
