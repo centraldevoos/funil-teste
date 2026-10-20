@@ -189,6 +189,8 @@
   }
   // Trechos com muitas mensagens seguidas (a história de Paris) vão mais devagar.
   let calma = 1;
+  // Ajuste em ms no tempo de leitura de cada mensagem num trecho: −1000 na abertura (1 s mais rápido), +1000 na oferta.
+  let ajuste = 0;
   // Uma mensagem do Henrique, com texto no formato do WhatsApp. O "digitando" acompanha o tamanho do texto.
   // Tempo pra ler a mensagem antes de a próxima começar a ser digitada (cerca de 40 letras por segundo).
   // Ritmo: ~3 s entre mensagens curtas e ~5 s nas longas. Cartões grandes (vantagens, bônus, tabela) ganham tempo de leitura
@@ -198,7 +200,7 @@
     const t = ms != null ? ms : Math.min((C.DIGITANDO_MS || 1100) + texto.length * 5, 2200);
     await digitando(t * calma);
     const el = linha("ele", fmt(texto));
-    await digitando(leitura(texto.length) * calma);
+    await digitando(Math.max(300, leitura(texto.length) * calma + ajuste));
     return el;
   }
   async function eleHtml(html, classe, ms) {
@@ -208,7 +210,7 @@
     return el;
   }
   // Cartão que a pessoa usa na hora (diagnóstico, presente, oferta): aparece e já funciona, sem pausa depois.
-  async function cartao(html, classe, ms) { await digitando(ms != null ? ms : 1100); return linha("ele", html, classe); }
+  async function cartao(html, classe, ms) { await digitando(Math.max(300, (ms != null ? ms : 1100) + ajuste)); return linha("ele", html, classe); }
   const eu = (texto) => linha("eu", esc(texto));
   // Tamanho real das imagens do fluxo (midia/fluxo), pra reservar o espaço certo antes de carregar.
   const TAMANHO_IMG = { tarifaAward: [800, 813], googleParis: [800, 1422], pagouParis: [800, 1200], viagemParis: [800, 1200], carlosSantiago: [800, 1008], julianaEgito: [800, 1000], comoAplicarCupom: [800, 1000] };
@@ -219,7 +221,7 @@
     const tam = TAMANHO_IMG[chave] ? ' width="' + TAMANHO_IMG[chave][0] + '" height="' + TAMANHO_IMG[chave][1] + '"' : "";
     const el = linha("ele", '<figure style="margin:0"><img src="' + esc(url) + '"' + tam + ' alt="' + esc(alt || "") + '">' + (legenda ? "<figcaption>" + fmt(legenda) + "</figcaption>" : "") + "</figure>", "balao foto");
     el.querySelector("img").addEventListener("load", rolar);
-    await digitando((legenda ? leitura(legenda.length) + 1200 : 2800) * calma);
+    await digitando(Math.max(300, (legenda ? leitura(legenda.length) + 1200 : 2800) * calma + ajuste));
   }
   // Vídeo do vturb dentro da conversa (o código do player é o mesmo que o vturb dá; o script é carregado uma vez só).
   const vturbCarregados = new Set();
@@ -790,7 +792,7 @@
     const cidade = p.destino.cidade;
     // Lugar sem aeroporto (Gramado → Porto Alegre): deixa claro que o voo é pro aeroporto mais perto do destino.
     const perto = destino.cidade && tirarAcento(destino.cidade) !== tirarAcento(cidade) ? ", o aeroporto mais perto de *" + destino.cidade + "*" : "";
-    await ele("Achei! Olha essa promoção saindo de *" + p.origem.cidade + "* pra *" + cidade + "*" + perto + ", que enviamos *direto no WhatsApp* dos membros VIP *na última hora*, com várias datas 👇");
+    await ele("Achei! Olha essa promoção saindo de *" + p.origem.cidade + "* pra *" + cidade + "*" + perto + ", que enviamos direto na *Comunidade VIP* *na última hora*, com várias datas 👇");
     const el = await eleHtml(htmlPromo(p), "zap", 1100);
     el.querySelector(".zap-img img").addEventListener("load", rolar);
     fotosUsadas.add(p.foto);
@@ -1197,7 +1199,9 @@
       txt("abertura1", "✈️ Oii, que bom que você veio! Eu preparei um *diagnóstico rápido* pra você: em *menos de 2 minutos*, você descobre *o quanto* pode economizar na sua *próxima viagem*!"),
       txt("abertura2", "E no final ainda te mostro como *pagar a metade do preço* nas passagens com a nossa Comunidade VIP. Bora??"),
     ];
+    ajuste = -1000;
     for (let i = 0; i < abertura.length; i++) await ele(String(abertura[i]), i === 0 ? 1100 : undefined);
+    ajuste = 0;
     await opcoes([{ texto: txt("botaoAbertura", "SIM, Claro!"), principal: true }]);
     registrar("aceitou", {});
 
@@ -1398,6 +1402,7 @@
     );
     await ele("E como você chegou até aqui, " + dados.nome + ", separei um *presente de Black Friday* pra você 🖤🎁");
     progresso(0.97);
+    ajuste = 1000; // da oferta em diante, 1 s a mais de leitura por mensagem
     await presenteBlackFriday();
     await ele("Esse é o seu *presente de Black Friday*: um *CUPOM exclusivo* pra acessar a Comunidade Vip com o maior desconto. APROVEITA!");
 
