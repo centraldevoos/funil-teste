@@ -7,6 +7,8 @@ window.CONFIG = {
   // Vazio = botão mostra um aviso.
   LINK_CHECKOUT: "https://pay.hub.la/Muxrk9khr04JS10t58pm",
   CUPOM: "BOASVINDAS",
+  // WhatsApp do atendimento: aparece como "Falar com um atendente" na lista de dúvidas do fim. Vazio = não aparece.
+  LINK_ATENDENTE: "https://api.whatsapp.com/send/?phone=553182671759&text=Estou+com+d%C3%BAvidas+sobre+o+VIP&type=phone",
 
   // Áudios e vídeos do Henrique. Vazio = o trecho não aparece (no modo teste, aparece um aviso no lugar).
   // Áudio: .mp3 ou .m4a. Vídeo: .mp4 vertical (9:16). Pode ser caminho relativo (midia/boas-vindas.mp3) ou URL.

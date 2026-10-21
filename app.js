@@ -59,7 +59,7 @@
   // No modo teste (?teste=1) não grava nada, a não ser com ?metricas=1 (aí marca como teste e o painel separa).
   const SESSAO = window.crypto && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
   const gravar = !!C.METRICAS_URL && (!teste || params.get("metricas") === "1");
-  const EVENTOS_PAINEL = new Set(["inicio", "aceitou", "etapa", "promo_exemplo", "resultado", "abriu_presente", "oferta", "checkout", "copiou_cupom", "abriu_duvidas", "duvida", "resposta", "erro", "toque"]);
+  const EVENTOS_PAINEL = new Set(["inicio", "aceitou", "etapa", "promo_exemplo", "resultado", "abriu_presente", "oferta", "checkout", "copiou_cupom", "abriu_duvidas", "duvida", "atendente", "resposta", "erro", "toque"]);
   const INICIO_VISITA = Date.now();
   let filaMetricas = [];
   function despachar(saindo) {
@@ -136,6 +136,7 @@
   function nomeDoAlvo(el) {
     const util = el.closest(ALVOS_UTEIS);
     if (util) {
+      if (util.matches(".atendente")) return "Falar com um atendente (WhatsApp)";
       if (util.matches(".opcao")) return "Botão: " + util.textContent.trim().slice(0, 40);
       if (util.matches(".cta")) return "Botão da oferta (checkout)";
       if (util.matches(".copiar")) return "Copiar cupom";
@@ -1568,15 +1569,34 @@
     await opcoes([{ texto: "Estou com dúvidas", principal: true }]);
     registrar("abriu_duvidas", {});
     const restantes = [...DUVIDAS];
+    const ATENDENTE = "💬 Falar com um atendente";
+    let mostrouAtendente = !C.LINK_ATENDENTE;
     await ele("Claro! Qual é a sua dúvida?");
-    while (restantes.length) {
-      const escolha = await opcoes([...restantes.map((d) => ({ texto: d[0] })), { texto: "Quero entrar no VIP", principal: true }]);
-      registrar("duvida", { pergunta: "duvida", valor: escolha.texto });
+    while (restantes.length || !mostrouAtendente) {
+      const escolha = await opcoes([...restantes.map((d) => ({ texto: d[0] })), ...(mostrouAtendente ? [] : [{ texto: ATENDENTE }]), { texto: "Quero entrar no VIP", principal: true }]);
+      registrar("duvida", { pergunta: "duvida", valor: escolha.texto.replace(/^💬 /, "") });
       if (escolha.texto === "Quero entrar no VIP") break;
+      if (escolha.texto === ATENDENTE) {
+        // Link do WhatsApp do atendimento: fica na conversa como botão (abre em outra aba, o funil continua aqui).
+        mostrouAtendente = true;
+        await ele("Claro! Toca aqui embaixo que você fala direto com o nosso time no WhatsApp 👇");
+        const link = document.createElement("a");
+        link.className = "opcao principal atendente"; link.href = C.LINK_ATENDENTE; link.target = "_blank"; link.rel = "noopener";
+        link.textContent = "💬 Falar com um atendente";
+        link.addEventListener("click", () => registrar("atendente", {}));
+        const caixa = document.createElement("div");
+        caixa.className = "opcoes";
+        caixa.appendChild(link);
+        conversa.appendChild(caixa); rolar();
+        await esperar(1500);
+        if (restantes.length) await ele("Se preferir, também te respondo por aqui mesmo 👇", 700);
+        else break;
+        continue;
+      }
       const i = restantes.findIndex((d) => d[0] === escolha.texto);
       await ele(restantes[i][1]);
       restantes.splice(i, 1);
-      if (restantes.length) await ele("Mais alguma dúvida?", 700);
+      if (restantes.length || !mostrouAtendente) await ele("Mais alguma dúvida?", 700);
     }
     await ele("Então bora! É só tocar no botão e aplicar o cupom *" + CUPOM + "* 👇");
     const botao = cta.cloneNode(true);
