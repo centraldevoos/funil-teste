@@ -83,12 +83,17 @@
   .opcoes { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin: 10px 0 4px 46px; }
   .opcoes > * { animation: entra .45s var(--mola) both; }
   .opcoes > *:nth-child(2) { animation-delay: .06s; } .opcoes > *:nth-child(3) { animation-delay: .12s; } .opcoes > *:nth-child(4) { animation-delay: .18s; } .opcoes > *:nth-child(5) { animation-delay: .24s; } .opcoes > *:nth-child(6) { animation-delay: .3s; }
-  .opcao { background: var(--superficie); color: var(--tinta); border: 1.5px solid var(--linha); border-radius: 99px; padding: 11px 18px; font-weight: 600; font-size: 15px; cursor: pointer; transition: border-color .2s, background .2s, transform .15s var(--mola); }
+  .opcao { background: var(--superficie); color: var(--tinta); border: 2px solid var(--tinta-2); border-radius: 99px; padding: 11px 18px; font-weight: 600; font-size: 15px; cursor: pointer; transition: border-color .2s, background .2s, transform .15s var(--mola); }
   .opcao:hover { border-color: var(--tinta); }
   .opcao:focus-visible { outline: 3px solid var(--destaque-fundo); border-color: var(--destaque); }
   .opcao:active { transform: scale(.96); }
   .opcao.principal { background: var(--tinta); color: #fff; border-color: var(--tinta); animation: entra .45s var(--mola) both, pulsa 2.2s ease-in-out .8s infinite; }
   .opcao.principal:hover { background: #2a2d33; }
+  /* borda bem visível no botão principal: anel escuro separado por um fio branco */
+  .opcao.principal { outline: 2px solid var(--tinta); outline-offset: 2px; }
+  .dica-clique { flex-basis: 100%; text-align: right; font-size: 12px; font-weight: 600; color: var(--suave); margin: 2px 6px 0 0; animation: entra .4s var(--mola) both, dicaSobe 1.4s ease-in-out .4s infinite; }
+  @keyframes dicaSobe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+  @media (prefers-reduced-motion: reduce) { .dica-clique { animation: entra .4s var(--mola) both; } }
   .opcoes.lista { flex-direction: column; align-items: stretch; }
   .opcoes.lista .opcao { border-radius: 16px; text-align: left; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
   .opcoes.lista .opcao small { color: var(--suave); font-weight: 500; font-size: 13px; }

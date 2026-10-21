@@ -290,6 +290,8 @@
   let ultimoMovimento = Date.now();
   ["scroll", "pointerdown", "touchstart", "keydown", "wheel"].forEach((ev) => window.addEventListener(ev, () => (ultimoMovimento = Date.now()), { passive: true }));
 
+  // Dica "Clique aqui" embaixo dos botões: no primeiro já aparece junto; nos outros, se a pessoa ficar 5 s sem clicar.
+  let primeiroBotao = true;
   // Botões de resposta. Se a pessoa ficar 50 s sem responder e sem mexer na tela, o Henrique cutuca uma vez, embaixo dos botões.
   function opcoes(lista, modo) {
     esconderDigitando(true);
@@ -309,12 +311,19 @@
         }, espera);
       };
       vigiar(limite);
+      const dica = document.createElement("div");
+      dica.className = "dica-clique";
+      dica.setAttribute("aria-hidden", "true");
+      dica.textContent = lista.length === 1 ? "👆 Clique aqui" : "👆 Clique em uma opção";
+      const mostrarDica = () => { if (respondeu || dica.isConnected) return; caixa.appendChild(dica); rolar(); };
+      const timerDica = setTimeout(mostrarDica, primeiroBotao ? 0 : 5000);
+      primeiroBotao = false;
       for (const o of lista) {
         const b = document.createElement("button");
         b.type = "button";
         b.className = "opcao" + (o.principal || lista.length === 1 ? " principal" : "");
         b.innerHTML = modo === "lista" ? "<span>" + esc(o.texto) + "</span>" + (o.detalhe ? "<small>" + esc(o.detalhe) + "</small>" : "") : esc(o.texto);
-        b.addEventListener("click", () => { vibrarToque(); respondeu = true; clearTimeout(cutucada); caixa.remove(); eu(o.texto); registrar("resposta", { resposta: o.valor || o.texto }); resolve(o); });
+        b.addEventListener("click", () => { vibrarToque(); respondeu = true; clearTimeout(cutucada); clearTimeout(timerDica); caixa.remove(); eu(o.texto); registrar("resposta", { resposta: o.valor || o.texto }); resolve(o); });
         caixa.appendChild(b);
       }
       conversa.appendChild(caixa); rolar(true);
