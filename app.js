@@ -160,9 +160,17 @@
     if (el.closest("#conversa")) return "Espaço vazio da conversa";
     return "Fundo da página";
   }
-  let toquesGravados = 0, recentes = [];
+  // Só conta toque de verdade: o dedo encosta e solta perto do mesmo ponto, rápido. Arrastar pra rolar a conversa não conta.
+  let toquesGravados = 0, recentes = [], inicioToque = null;
   document.addEventListener("pointerdown", (e) => {
-    if (!gravar || toquesGravados >= 80 || e.isPrimary === false || !(e.target instanceof Element)) return;
+    inicioToque = e.isPrimary === false ? null : { x: e.clientX, y: e.clientY, t: Date.now(), alvo: e.target };
+  }, { capture: true, passive: true });
+  document.addEventListener("pointercancel", () => (inicioToque = null), { capture: true, passive: true });
+  document.addEventListener("pointerup", (e) => {
+    const ini = inicioToque; inicioToque = null;
+    if (!gravar || toquesGravados >= 80 || !ini || !(ini.alvo instanceof Element)) return;
+    if (Math.hypot(e.clientX - ini.x, e.clientY - ini.y) > 12 || Date.now() - ini.t > 700) return;
+    e = { clientX: ini.x, clientY: ini.y, target: ini.alvo };
     const el = e.target, agora = Date.now(), W = window.innerWidth || 1, H = window.innerHeight || 1;
     recentes = recentes.filter((t) => agora - t.t < 900 && Math.hypot(t.x - e.clientX, t.y - e.clientY) < 40);
     recentes.push({ t: agora, x: e.clientX, y: e.clientY });
