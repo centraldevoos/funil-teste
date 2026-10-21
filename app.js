@@ -82,10 +82,14 @@
     const d = dados.destino;
     filaMetricas.push({
       sessao: SESSAO, experimento: EXP ? EXP.nome : null, variante, evento, etapa: extra && extra.etapa,
+      // Telefone e nome (do link do disparo ou digitados) vão pro SaaS financeiro, que mostra a lista de leads com login.
+      telefone: TELEFONE || undefined, nome: dados.nome || NOME_LINK || undefined,
       destino: d && d.cidade, regiao: d ? regiaoDe(d) : null, origem: dados.origem && dados.origem.cidade, pessoas: dados.pessoas,
       utm_source: params.get("utm_source"), utm_medium: params.get("utm_medium"), utm_campaign: params.get("utm_campaign"), utm_term: params.get("utm_term"),
       dispositivo: window.innerWidth < 768 ? "celular" : "computador", teste,
       extra: Object.assign({ ms: Date.now() - INICIO_VISITA }, LISTA_EXP.length ? { testes: TESTES } : null,
+        // De onde veio o dado: nome do link ou digitado; cidade pelo DDD ou digitada.
+        { nome_origem: NOME_LINK ? "link" : dados.nome ? "digitado" : undefined, cidade_origem: dados.cidadeOrigem },
         evento === "checkout" ? { link: extra && extra.link } : null,
         evento === "toque" ? { x: extra.x, y: extra.y, alvo: extra.alvo, util: extra.util, raiva: extra.raiva || undefined, rx: extra.rx, ry: extra.ry } : null,
         evento === "erro" ? { onde: extra && extra.onde } : null,
@@ -1461,6 +1465,7 @@
       origem = { texto: a[0], cidade: a[0], iata: alt, lat: a[1], lon: a[2] };
     }
     dados.origem = origem;
+    dados.cidadeOrigem = origemDoTelefone ? "ddd" : "digitada";
     registrar("resposta", { pergunta: "origem", valor: origem.cidade + (origemDoTelefone ? " (pelo DDD)" : "") });
 
     // O cálculo, a promoção e, embaixo dela, quanto a pessoa economiza nela.
