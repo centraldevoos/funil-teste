@@ -67,7 +67,7 @@
   .balao s { color: var(--suave); }
   .eu .balao { background: var(--tinta); color: #fff; font-weight: 500; border-bottom-left-radius: var(--r-bolha); border-bottom-right-radius: 6px; }
   .balao.foto { padding: 4px; background: var(--superficie); border: 1px solid var(--linha); }
-  .balao.foto img { display: block; width: 100%; max-width: 380px; height: auto; border-radius: 16px; background: var(--bolha); object-fit: cover; }
+  .balao.foto img:not(.bandeira) { display: block; width: 100%; max-width: 380px; height: auto; border-radius: 16px; background: var(--bolha); object-fit: cover; }
   .balao.foto figcaption { padding: 9px 11px 7px; color: var(--tinta-2); }
   .balao.dica { background: transparent; padding: 2px 4px; color: var(--suave); font-size: 14px; }
   .digitando { display: flex; gap: 5px; padding: 16px 18px; }
@@ -325,7 +325,7 @@
   .video video { display: block; width: 100%; border-radius: 16px; aspect-ratio: 9 / 16; object-fit: cover; background: #000; }
   .video.vturb { width: min(300px, 74vw); padding: 4px; background: var(--tinta); border-radius: var(--r-bolha); border-bottom-left-radius: 6px; overflow: hidden; }
   .video.vturb vturb-smartplayer { border-radius: 16px; overflow: hidden; }
-  .balao.foto img, .zap-img img { cursor: zoom-in; }
+  .balao.foto img:not(.bandeira), .zap-img img { cursor: zoom-in; }
   .visor { position: fixed; inset: 0; z-index: 50; background: rgba(10, 11, 13, .92); display: flex; align-items: center; justify-content: center; padding: max(16px, env(safe-area-inset-top)) 12px max(16px, env(safe-area-inset-bottom)); animation: entra .2s ease both; }
   .visor[hidden] { display: none; }
   .visor img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 10px; touch-action: pinch-zoom; }

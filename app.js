@@ -132,7 +132,7 @@
   // Cada toque vai pro painel: posição na tela (0 a 1, só celular no mapa), o que foi tocado, se era clicável,
   // posição dentro do cartão da oferta (quando foi nele) e "toque de raiva" (3 toques rápidos no mesmo lugar).
   // Nada do que a pessoa digita é gravado. No máximo 80 toques por visita.
-  const ALVOS_UTEIS = "button, a, input, select, textarea, label, [role=button], .bf-cartao .palco, .balao.foto img, .zap-img img, .visor";
+  const ALVOS_UTEIS = "button, a, input, select, textarea, label, [role=button], .bf-cartao .palco, .balao.foto img:not(.bandeira), .zap-img img, .visor";
   function nomeDoAlvo(el) {
     const util = el.closest(ALVOS_UTEIS);
     if (util) {
@@ -351,7 +351,7 @@
   visor.addEventListener("click", fecharVisor);
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !visor.hidden) fecharVisor(); });
   conversa.addEventListener("click", (e) => {
-    const img = e.target.closest(".balao.foto img, .zap-img img");
+    const img = e.target.closest(".balao.foto img:not(.bandeira), .zap-img img");
     if (!img) return;
     const v = visor.querySelector("img");
     v.src = img.currentSrc || img.src; v.alt = img.alt || "";
