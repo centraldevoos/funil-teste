@@ -13,8 +13,11 @@
   // Telefone que vem no link do WhatsApp (?telefone=5531999999999). O DDD escolhe o aeroporto de saída.
   const TELEFONE = (params.get("telefone") || "").replace(/\D/g, "");
   // Nome que vem no link (?nome=Maria ou ?nome=Maria%20Silva): só a primeira palavra com letras, com a inicial maiúscula.
+  // Se a ferramenta de disparo não trocou a variável (veio "{Nome do lead|leadName}", "{{nome}}"…), ignora e pergunta o nome.
   const NOME_LINK = (() => {
-    const m = (params.get("nome") || "").match(/\p{L}[\p{L}'’-]*/u);
+    const bruto = params.get("nome") || "";
+    if (/[{}|[\]<>%$]/.test(bruto) || /\b(lead|nome|name|contato|cliente)\b/i.test(bruto)) return "";
+    const m = bruto.match(/\p{L}[\p{L}'’-]*/u);
     if (!m || m[0].length < 2) return "";
     const n = m[0].slice(0, 30);
     return n.charAt(0).toUpperCase() + n.slice(1).toLowerCase();
