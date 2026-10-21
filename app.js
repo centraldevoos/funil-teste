@@ -156,6 +156,16 @@
   const vibrarToque = () => { try { if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate(8); } catch (e) {} };
 
   // ---------- mensagens ----------
+  // A foto do Henrique fica só na última mensagem de uma sequência dele (classe "segue" nas anteriores).
+  // Feito aqui e não com :has() no CSS porque o Safari do iPhone não recalcula quando o "digitando" some e a foto sumia.
+  const marcarSequencias = () => {
+    for (const el of conversa.children) {
+      if (!el.classList.contains("ele")) continue;
+      const prox = el.nextElementSibling;
+      el.classList.toggle("segue", !!(prox && prox.classList.contains("linha") && prox.classList.contains("ele")));
+    }
+  };
+  new MutationObserver(marcarSequencias).observe(conversa, { childList: true });
   const avatar = () => '<div class="avatar"><img src="' + esc(C.AVATAR_URL || "midia/henrique-avatar.jpg") + '" alt="Henrique"></div>';
   let digEl = null, digSome = null;
   function mostrarDigitando() {
@@ -173,8 +183,14 @@
     const tirar = () => { if (digEl) { digEl.remove(); digEl = null; } };
     if (agora) tirar(); else digSome = setTimeout(tirar, 80);
   }
+  // Bandeiras viram imagem (midia/bandeiras, estilo Twemoji): em alguns celulares o emoji da bandeira aparece preto.
+  const comBandeiras = (html) => html.replace(/[\u{1F1E6}-\u{1F1FF}]{2}/gu, (f) => {
+    const iso = [...f].map((c) => String.fromCharCode(c.codePointAt(0) - 127397)).join("").toLowerCase();
+    return '<img class="bandeira" src="midia/bandeiras/' + iso + '.svg" alt="' + f + '" onerror="this.replaceWith(this.alt)">';
+  });
   function linha(lado, html, classe) {
     esconderDigitando(true);
+    html = comBandeiras(html);
     const el = document.createElement("div");
     el.className = "linha " + lado;
     el.innerHTML = lado === "ele" ? avatar() + '<div class="' + (classe || "balao") + '">' + html + "</div>" : '<div class="balao">' + html + "</div>";

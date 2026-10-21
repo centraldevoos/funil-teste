@@ -1,0 +1,1 @@
+Bandeiras: Twemoji (github.com/jdecked/twemoji, v15.1.0), licença CC-BY 4.0. Um SVG por país, nome = código ISO de 2 letras em minúsculas.
