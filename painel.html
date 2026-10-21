@@ -59,6 +59,8 @@
   .veredito p { margin: 0; }
   .veredito .t { font-weight: 650; }
   .veredito .s { color: var(--suave); font-size: 13.5px; margin-top: 2px; }
+  .sub-ab { font-size: 15px; margin: 22px 0 8px; }
+  .nota-ab { margin: 10px 0 0; }
   /* funil */
   .legenda { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--tinta-2); margin-bottom: 10px; }
   .legenda i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
@@ -168,6 +170,13 @@
     ["quando", "Quando pretende viajar"], ["pessoas", "Quantas pessoas viajam"], ["origem", "Cidade de saída"], ["duvida", "Dúvidas que mais tocaram"],
   ];
   const CORES = ["var(--a)", "var(--b)", "var(--c)", "var(--d)"];
+  // O que cada versão de cada teste significa (igual ao config.js do site).
+  const ROTULOS = {
+    "abertura-v1": { A: "2 bolhas (as de sempre)", B: "3 bolhas curtas" },
+    "orderbump-v1": { A: "sem order bump", B: "com order bump" },
+  };
+  const rotulo = (v) => { const r = (ROTULOS[$("experimento").value] || {})[v]; return "Versão " + esc(v) + (r ? " · " + esc(r) : ""); };
+  const reais = (n) => "R$ " + Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const $ = (id) => document.getElementById(id);
   const fmt = (n) => Number(n || 0).toLocaleString("pt-BR");
   const pct = (a, b) => (b ? (a / b) * 100 : 0);
@@ -281,9 +290,9 @@
         (pouco ? " Espere pelo menos 100 visitas em cada versão." : ganhou ? " Já dá pra ficar com a versão " + melhor.v + "." : " Deixe rodar mais; o ideal é chegar a 95% de confiança.");
       ab = '<div class="veredito' + (ganhou ? " ganhou" : "") + '"><div class="ic">' + (ganhou ? "🏆" : "🧪") + '</div><div><p class="t">' + titulo + '</p><p class="s">Taxa de checkout (checkout ÷ visitas) — ' + sub + "</p></div></div>";
     }
-    $("ab").innerHTML = "<h2>Teste A/B</h2>" + ab;
+    $("ab").innerHTML = "<h2>Teste A/B</h2>" + ab + vendasHub(d, contagem);
     // Funil
-    $("legenda").innerHTML = variantes.map((v, i) => '<span><i style="background:' + CORES[i % CORES.length] + '"></i>Versão ' + esc(v) + " · " + fmt(contagem[v].inicio || 0) + " visitas</span>").join("");
+    $("legenda").innerHTML = variantes.map((v, i) => '<span><i style="background:' + CORES[i % CORES.length] + '"></i>' + rotulo(v) + " · " + fmt(contagem[v].inicio || 0) + " visitas</span>").join("");
     const maiorQueda = {};
     for (const v of variantes) {
       let ant = null, max = 0;
@@ -303,6 +312,32 @@
       html += "</tr>";
     }
     $("funil").innerHTML = html + "</tbody></table>";
+  }
+
+  // Vendas reais da Hub.la por versão (cruzadas pelo link do checkout que cada versão recebeu).
+  // No teste do order bump é isso que decide: o clique no botão é igual nas duas versões, a diferença está no checkout.
+  function vendasHub(d, contagem) {
+    const por = {};
+    for (const l of d.vendas || []) {
+      if (!+l.cliques) continue;
+      const k = l.variante || "?", o = (por[k] = por[k] || { cliques: 0, vendas: 0, bump: 0, receita: 0 });
+      o.cliques += +l.cliques; o.vendas += +l.vendas; o.bump += +l.com_bump; o.receita += +l.receita_principal + +l.receita_bump;
+    }
+    const vs = Object.keys(por).sort();
+    if (!vs.length) return "";
+    const visitas = (v) => (contagem[v] ? contagem[v].inicio || 0 : vs.length === 1 ? Object.values(contagem).reduce((t, c) => t + (c.inicio || 0), 0) : 0);
+    let html = '<h3 class="sub-ab">Vendas na Hub.la</h3><div class="tabela"><table><thead><tr><th>Versão</th><th class="num">Cliques no checkout</th><th class="num">Vendas</th><th class="num">Venda ÷ clique</th><th class="num">Com order bump</th><th class="num">Receita</th><th class="num">Receita por visita</th></tr></thead><tbody>' +
+      vs.map((v) => { const o = por[v], n = visitas(v); return "<tr><td>" + (v === "(todos)" ? "Todas" : rotulo(v)) + '</td><td class="num">' + fmt(o.cliques) + '</td><td class="num"><b>' + fmt(o.vendas) + '</b></td><td class="num">' + pctTxt(pct(o.vendas, o.cliques)) + '</td><td class="num">' + fmt(o.bump) + " <small>(" + pctTxt(pct(o.bump, o.vendas)) + ')</small></td><td class="num">' + reais(o.receita) + '</td><td class="num">' + (n ? reais(o.receita / n) : "—") + "</td></tr>"; }).join("") +
+      "</tbody></table></div>";
+    if (vs.length >= 2) {
+      const taxas = vs.map((v) => ({ v, n: por[v].cliques, c: por[v].vendas, rpc: por[v].cliques ? por[v].receita / por[v].cliques : 0 })).sort((a, b) => pct(b.c, b.n) - pct(a.c, a.n));
+      const [melhor, segundo] = taxas, r = comparar(segundo.c, segundo.n, melhor.c, melhor.n);
+      const pouco = Math.min(melhor.n, segundo.n) < 100 || melhor.c + segundo.c < 20, conf = r ? Math.round(r.conf * 100) : 0, ganhou = !pouco && conf >= 95;
+      const rec = [...taxas].sort((a, b) => b.rpc - a.rpc);
+      html += '<p class="sub nota-ab">' + (ganhou ? "🏆 <b>" + rotulo(melhor.v) + "</b> converte mais no checkout, com " + conf + "% de confiança." : pouco ? "Ainda é cedo: espere pelo menos 100 cliques no checkout e 20 vendas somando as versões." : "Empate técnico em vendas por enquanto (" + conf + "% de confiança).") +
+        " Receita por clique: " + rec.map((t) => "<b>" + esc(t.v) + "</b> " + reais(t.rpc)).join(" · ") + ". Se uma versão vende um pouco menos mas fatura mais por clique (por causa do order bump), ela pode valer mais a pena.</p>";
+    }
+    return html + '<p class="sub nota-ab">Vendas sem reembolso feitas nos links do funil no período. Order bump = outra compra da mesma pessoa até 20 min antes ou depois.</p>';
   }
 
   function respostas(d) {

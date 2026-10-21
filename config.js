@@ -3,8 +3,9 @@ window.CONFIG = {
   // Foto do Henrique (fica em site/midia/).
   AVATAR_URL: "midia/henrique-avatar.jpg",
 
-  // Link do checkout do VIP no Hub.la (fica fora do repositório por segurança). Vazio = botão mostra um aviso.
-  LINK_CHECKOUT: "",
+  // Link do checkout do VIP na Hub.la (o padrão, sem order bump). O teste "orderbump-v1" abaixo troca o link por versão.
+  // Vazio = botão mostra um aviso.
+  LINK_CHECKOUT: "https://pay.hub.la/Muxrk9khr04JS10t58pm",
   CUPOM: "BOASVINDAS",
 
   // Áudios e vídeos do Henrique. Vazio = o trecho não aparece (no modo teste, aparece um aviso no lugar).
@@ -42,25 +43,40 @@ window.CONFIG = {
   // Vazio = não grava nada.
   METRICAS_URL: "https://qjyswtxspktkqoyqjjwp.supabase.co/functions/v1/funil-evento",
 
-  // Teste A/B. nome: o nome do teste (é como aparece no painel; troque o nome a cada teste novo).
-  // pesos: % dos visitantes em cada versão. variantes: o que muda em cada versão; o que não estiver lá usa o padrão.
+  // Testes A/B. Pode rodar mais de um ao mesmo tempo: cada visitante é sorteado em cada teste, de forma independente.
+  // O primeiro da lista é o "principal" (é o que aparece no painel com o filtro "Todos os testes").
+  // nome: como aparece no painel (troque o nome a cada teste novo). pesos: % dos visitantes em cada versão.
+  // variantes: o que muda em cada versão; o que não estiver lá usa o padrão.
   // O que pode mudar: abertura (lista de mensagens, uma bolha cada), abertura1, abertura2, botaoAbertura,
-  // perguntaDestino ({nome} vira o nome da pessoa), bonusTitulo e botaoOferta. Pra ver uma versão: ?v=A ou ?v=B no link.
-  // Teste atual (desde 20/10/2026): mensagens iniciais. A = as de sempre (2 bolhas); B = 3 bolhas curtas.
-  EXPERIMENTO: {
-    nome: "abertura-v1",
-    pesos: { A: 50, B: 50 },
-    variantes: {
-      A: {},
-      B: {
-        abertura: [
-          "Oii! ✈️",
-          "Preparei um *diagnóstico rápido* pra você 👇",
-          "Em *2 minutinhos* você descobre *quanto pode economizar* na sua próxima viagem. Bora??",
-        ],
+  // perguntaDestino ({nome} vira o nome da pessoa), bonusTitulo, botaoOferta e linkCheckout.
+  // Pra ver uma versão: ?v=B força o primeiro teste; ?v_NOME=B força um teste pelo nome (ex.: ?v_orderbump-v1=B).
+  EXPERIMENTOS: [
+    // Desde 20/10/2026: mensagens iniciais. A = as de sempre (2 bolhas); B = 3 bolhas curtas.
+    {
+      nome: "abertura-v1",
+      pesos: { A: 50, B: 50 },
+      variantes: {
+        A: {},
+        B: {
+          abertura: [
+            "Oii! ✈️",
+            "Preparei um *diagnóstico rápido* pra você 👇",
+            "Em *2 minutinhos* você descobre *quanto pode economizar* na sua próxima viagem. Bora??",
+          ],
+        },
       },
     },
-  },
+    // Desde 21/10/2026: checkout com ou sem order bump. A = sem order bump; B = com order bump.
+    // O painel mostra as vendas reais da Hub.la de cada link (venda, order bump e receita).
+    {
+      nome: "orderbump-v1",
+      pesos: { A: 50, B: 50 },
+      variantes: {
+        A: { linkCheckout: "https://pay.hub.la/Muxrk9khr04JS10t58pm" },
+        B: { linkCheckout: "https://pay.hub.la/qslAT0ELAIjaV6sdgy84" },
+      },
+    },
+  ],
 
   PROMOS_FONTE: "simulada",
   PROMOS_API_URL: "",

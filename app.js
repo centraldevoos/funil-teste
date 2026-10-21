@@ -23,24 +23,31 @@
   const dados = { nome: "", ondeCompra: "", milhas: "", destino: null, quando: null, pessoas: 1, origem: null };
   const eventos = (window.dataLayer = window.dataLayer || []);
 
-  // ---------- teste A/B ----------
-  const EXP = C.EXPERIMENTO && C.EXPERIMENTO.nome ? C.EXPERIMENTO : null;
-  const variante = (() => {
-    if (!EXP) return null;
-    const nomes = Object.keys(EXP.variantes || { A: {} });
-    const forcada = (params.get("v") || "").toUpperCase();
+  // ---------- testes A/B ----------
+  // Pode haver vários testes ao mesmo tempo; cada um sorteia a versão por conta própria e guarda no aparelho.
+  const LISTA_EXP = (Array.isArray(C.EXPERIMENTOS) ? C.EXPERIMENTOS : [C.EXPERIMENTO]).filter((x) => x && x.nome);
+  const sortear = (exp, i) => {
+    const nomes = Object.keys(exp.variantes || { A: {} });
+    const forcada = (params.get("v_" + exp.nome) || (i === 0 ? params.get("v") : "") || "").toUpperCase();
     if (nomes.includes(forcada)) return forcada;
-    const chave = "funil_variante_" + EXP.nome;
+    const chave = "funil_variante_" + exp.nome;
     try { const salva = localStorage.getItem(chave); if (nomes.includes(salva)) return salva; } catch (e) {}
-    const pesos = EXP.pesos || {}, total = nomes.reduce((t, n) => t + (pesos[n] != null ? pesos[n] : 1), 0);
+    const pesos = exp.pesos || {}, total = nomes.reduce((t, n) => t + (pesos[n] != null ? pesos[n] : 1), 0);
     let r = Math.random() * total, v = nomes[0];
     for (const n of nomes) { r -= pesos[n] != null ? pesos[n] : 1; if (r < 0) { v = n; break; } }
     try { localStorage.setItem(chave, v); } catch (e) {}
     return v;
-  })();
-  // Texto que pode mudar por versão: usa o da variante, se tiver; senão o padrão. {nome} vira o nome da pessoa.
+  };
+  const TESTES = {};
+  LISTA_EXP.forEach((exp, i) => (TESTES[exp.nome] = sortear(exp, i)));
+  // O primeiro teste é o principal (colunas experimento/variante do painel); todos vão em extra.testes.
+  const EXP = LISTA_EXP[0] || null;
+  const variante = EXP ? TESTES[EXP.nome] : null;
+  // Texto (ou link) que pode mudar por versão: usa o da versão sorteada no teste que mexe nele; senão o padrão.
+  // {nome} vira o nome da pessoa.
   const txt = (chave, padrao) => {
-    const o = EXP && EXP.variantes && EXP.variantes[variante] ? EXP.variantes[variante][chave] : null;
+    let o = null;
+    for (const exp of LISTA_EXP) { const v = exp.variantes && exp.variantes[TESTES[exp.nome]]; if (v && v[chave] != null) { o = v[chave]; break; } }
     return String(o != null ? o : padrao).replace(/\{nome\}/g, dados.nome || "");
   };
 
@@ -75,7 +82,8 @@
       destino: d && d.cidade, regiao: d ? regiaoDe(d) : null, origem: dados.origem && dados.origem.cidade, pessoas: dados.pessoas,
       utm_source: params.get("utm_source"), utm_medium: params.get("utm_medium"), utm_campaign: params.get("utm_campaign"), utm_term: params.get("utm_term"),
       dispositivo: window.innerWidth < 768 ? "celular" : "computador", teste,
-      extra: Object.assign({ ms: Date.now() - INICIO_VISITA },
+      extra: Object.assign({ ms: Date.now() - INICIO_VISITA }, LISTA_EXP.length ? { testes: TESTES } : null,
+        evento === "checkout" ? { link: extra && extra.link } : null,
         evento === "erro" ? { onde: extra && extra.onde } : null,
         evento === "resultado" ? { economia: extra && extra.economia } : null,
         evento === "resposta" || evento === "duvida" ? { pergunta: extra.pergunta, valor: String(extra.valor || "").slice(0, 60) } : null),
@@ -108,7 +116,7 @@
   const escrevendo = () => document.activeElement && document.activeElement.tagName === "INPUT";
   const rolar = (forcar) => requestAnimationFrame(() => { if (forcar !== true && escrevendo()) return; if (forcar === true || seguir) window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }); else descer.classList.add("ver", "nova"); });
   function registrar(evento, extra) {
-    eventos.push({ event: "funil_" + evento, ...extra, variante });
+    eventos.push({ event: "funil_" + evento, ...extra, variante, testes: TESTES });
     try { anotar(evento, extra); } catch (e) {}
     if (typeof window.fbq === "function") {
       if (evento === "resultado") window.fbq("track", "Lead");
@@ -1456,9 +1464,13 @@
       registrar("copiou_cupom", {});
     });
     const cta = oferta.querySelector(".cta");
-    if (C.LINK_CHECKOUT) {
+    // Link do checkout: o da versão sorteada (teste do order bump) ou o padrão. O código do link (fim do endereço
+    // da Hub.la) vai junto no evento "checkout" pro painel cruzar com as vendas.
+    const linkCheckout = txt("linkCheckout", C.LINK_CHECKOUT || "");
+    const codigoLink = (linkCheckout.split("?")[0].replace(/\/+$/, "").split("/").pop() || "").slice(0, 60);
+    if (linkCheckout) {
       try {
-        const url = new URL(C.LINK_CHECKOUT, location.href);
+        const url = new URL(linkCheckout, location.href);
         ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"].forEach((k) => params.get(k) && url.searchParams.set(k, params.get(k)));
         if (TELEFONE && !params.get("utm_content")) url.searchParams.set("utm_content", TELEFONE);
         cta.href = url.toString();
@@ -1469,10 +1481,10 @@
     let fila = Promise.resolve();
     const emFila = (fn) => (fila = fila.then(fn).catch((e) => console.error(e)));
     cta.addEventListener("click", async (e) => {
-      if (!C.LINK_CHECKOUT) { e.preventDefault(); oferta.querySelector(".aviso").style.display = "block"; }
+      if (!linkCheckout) { e.preventDefault(); oferta.querySelector(".aviso").style.display = "block"; }
       else if (Date.now() - ultimoToque < 2500) { e.preventDefault(); return; }
       ultimoToque = Date.now();
-      registrar("checkout", { destino: dados.destino && dados.destino.cidade });
+      registrar("checkout", { destino: dados.destino && dados.destino.cidade, link: codigoLink });
       if (clicou) return;
       clicou = true;
       await esperar(2500);
