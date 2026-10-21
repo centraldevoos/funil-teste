@@ -56,7 +56,7 @@
   // No modo teste (?teste=1) não grava nada, a não ser com ?metricas=1 (aí marca como teste e o painel separa).
   const SESSAO = window.crypto && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
   const gravar = !!C.METRICAS_URL && (!teste || params.get("metricas") === "1");
-  const EVENTOS_PAINEL = new Set(["inicio", "aceitou", "etapa", "promo_exemplo", "resultado", "abriu_presente", "oferta", "checkout", "copiou_cupom", "abriu_duvidas", "duvida", "resposta", "erro"]);
+  const EVENTOS_PAINEL = new Set(["inicio", "aceitou", "etapa", "promo_exemplo", "resultado", "abriu_presente", "oferta", "checkout", "copiou_cupom", "abriu_duvidas", "duvida", "resposta", "erro", "toque"]);
   const INICIO_VISITA = Date.now();
   let filaMetricas = [];
   function despachar(saindo) {
@@ -84,6 +84,7 @@
       dispositivo: window.innerWidth < 768 ? "celular" : "computador", teste,
       extra: Object.assign({ ms: Date.now() - INICIO_VISITA }, LISTA_EXP.length ? { testes: TESTES } : null,
         evento === "checkout" ? { link: extra && extra.link } : null,
+        evento === "toque" ? { x: extra.x, y: extra.y, alvo: extra.alvo, util: extra.util, raiva: extra.raiva || undefined, rx: extra.rx, ry: extra.ry } : null,
         evento === "erro" ? { onde: extra && extra.onde } : null,
         evento === "resultado" ? { economia: extra && extra.economia } : null,
         evento === "resposta" || evento === "duvida" ? { pergunta: extra.pergunta, valor: String(extra.valor || "").slice(0, 60) } : null),
@@ -123,6 +124,51 @@
       if (evento === "checkout") window.fbq("track", "InitiateCheckout");
     }
   }
+
+  // ---------- mapa de calor ----------
+  // Cada toque vai pro painel: posição na tela (0 a 1, só celular no mapa), o que foi tocado, se era clicável,
+  // posição dentro do cartão da oferta (quando foi nele) e "toque de raiva" (3 toques rápidos no mesmo lugar).
+  // Nada do que a pessoa digita é gravado. No máximo 80 toques por visita.
+  const ALVOS_UTEIS = "button, a, input, select, textarea, label, [role=button], .bf-cartao .palco, .balao.foto img, .zap-img img, .visor";
+  function nomeDoAlvo(el) {
+    const util = el.closest(ALVOS_UTEIS);
+    if (util) {
+      if (util.matches(".opcao")) return "Botão: " + util.textContent.trim().slice(0, 40);
+      if (util.matches(".cta")) return "Botão da oferta (checkout)";
+      if (util.matches(".copiar")) return "Copiar cupom";
+      if (util.closest(".bf-cartao")) return "Presente";
+      if (util.matches("input")) return "Campo de texto";
+      if (util.closest(".campo")) return "Enviar (seta)";
+      if (util.matches("img")) return "Imagem (abrir)";
+      if (util.closest(".visor")) return "Fechar imagem";
+      if (util.matches(".descer")) return "Botão descer";
+      if (util.closest(".rodape")) return "Rodapé";
+      return "Outro botão";
+    }
+    if (el.closest(".oferta")) return "Cartão da oferta (fora do botão)";
+    if (el.closest(".comparar")) return "Cartão Grátis/VIP/bônus";
+    if (el.closest(".resultado")) return "Cartão da economia";
+    if (el.closest(".zap")) return "Print da promoção (texto)";
+    if (el.closest(".linha.ele")) return "Mensagem do Henrique";
+    if (el.closest(".linha.eu")) return "Resposta da pessoa";
+    if (el.closest("header")) return "Topo";
+    if (el.closest(".dica-clique")) return "Dica \"Clique aqui\"";
+    if (el.closest("#conversa")) return "Espaço vazio da conversa";
+    return "Fundo da página";
+  }
+  let toquesGravados = 0, recentes = [];
+  document.addEventListener("pointerdown", (e) => {
+    if (!gravar || toquesGravados >= 80 || e.isPrimary === false || !(e.target instanceof Element)) return;
+    const el = e.target, agora = Date.now(), W = window.innerWidth || 1, H = window.innerHeight || 1;
+    recentes = recentes.filter((t) => agora - t.t < 900 && Math.hypot(t.x - e.clientX, t.y - e.clientY) < 40);
+    recentes.push({ t: agora, x: e.clientX, y: e.clientY });
+    const dados3 = (n) => Math.round(Math.min(Math.max(n, 0), 1) * 1000) / 1000;
+    const toque = { x: dados3(e.clientX / W), y: dados3(e.clientY / H), alvo: nomeDoAlvo(el), util: !!el.closest(ALVOS_UTEIS), raiva: recentes.length >= 3 };
+    const oferta = el.closest(".oferta");
+    if (oferta) { const r = oferta.getBoundingClientRect(); toque.rx = dados3((e.clientX - r.left) / r.width); toque.ry = dados3((e.clientY - r.top) / r.height); }
+    toquesGravados++;
+    try { anotar("toque", toque); } catch (err) {}
+  }, { capture: true, passive: true });
 
   // ---------- topo ----------
   // Barra de progresso no estilo do vturb: anda rápido no começo (parece que vai ser rapidinho) e vai

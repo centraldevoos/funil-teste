@@ -59,6 +59,25 @@
   .veredito p { margin: 0; }
   .veredito .t { font-weight: 650; }
   .veredito .s { color: var(--suave); font-size: 13.5px; margin-top: 2px; }
+  /* mapa de calor */
+  .calor-grade { display: grid; grid-template-columns: minmax(220px, 300px) 1fr; gap: 28px; align-items: start; margin-top: 14px; }
+  .calor-fig { margin: 0; }
+  .calor-quadro { position: relative; width: 100%; border: 1.5px solid var(--linha); border-radius: 22px; overflow: hidden; background: #fafafa; }
+  .calor-quadro.oferta { border-radius: 18px; background: #fff; }
+  .calor-quadro canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; }
+  .esq { position: absolute; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #9aa0a8; text-align: center; line-height: 1.2; padding: 2px; }
+  .esq.linha-cinza { background: #eceef1; }
+  .esq.escura { background: #c9ccd1; color: #fff; }
+  .esq.topo-tela { background: #fff; border-bottom: 1px solid var(--linha); border-radius: 0; justify-content: flex-start; padding-left: 12px; }
+  .esq.contorno { border: 1px dashed #d5d8dc; }
+  .calor-fig figcaption { margin-top: 10px; font-size: 12.5px; color: var(--suave); }
+  .calor-escala { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .calor-escala i { flex: 1; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #fed7aa, #fb923c, #ea580c, #9a3412); }
+  .calor-lista table td small { color: var(--suave); }
+  .tag-morto { display: inline-block; font-size: 11px; font-weight: 600; color: #9a3412; background: #fff1e6; border-radius: 99px; padding: 1px 7px; margin-left: 6px; white-space: nowrap; }
+  .tag-raiva { display: inline-block; font-size: 11px; font-weight: 600; color: var(--vermelho); background: #fdecec; border-radius: 99px; padding: 1px 7px; margin-left: 6px; white-space: nowrap; }
+  .calor-resumo { margin: 0 0 10px; font-size: 14px; }
+  @media (max-width: 760px) { .calor-grade { grid-template-columns: 1fr; } .calor-fig { max-width: 280px; margin: 0 auto; } }
   .sub-ab { font-size: 15px; margin: 22px 0 8px; }
   .nota-ab { margin: 10px 0 0; }
   /* funil */
@@ -120,6 +139,18 @@
       <p class="sub">Pessoas (sessões) que chegaram em cada etapa. A porcentagem é sobre quem abriu o site; em vermelho, quantos pararam ali. "Tempo" é a mediana desde que a pessoa abriu o site.</p>
       <div class="legenda" id="legenda"></div>
       <div class="tabela" id="funil"></div>
+    </section>
+    <section class="cartao">
+      <h2>Mapa de calor</h2>
+      <p class="sub">Onde as pessoas tocam: quanto mais escuro, mais toques. Passe o dedo ou o mouse no mapa pra ver os números. Ao lado, o que foi tocado, com destaque pros toques em coisas que não são botão (sinal de que a pessoa achou que era clicável).</p>
+      <div class="abas" role="tablist" id="abasCalor">
+        <button type="button" role="tab" data-tipo="tela" aria-selected="true">Tela do celular</button>
+        <button type="button" role="tab" data-tipo="oferta" aria-selected="false">Cartão da oferta</button>
+      </div>
+      <div class="calor-grade">
+        <figure class="calor-fig"><div class="calor-quadro" id="calorQuadro"></div><figcaption id="calorLegenda"></figcaption></figure>
+        <div class="calor-lista" id="calorLista"></div>
+      </div>
     </section>
     <section class="cartao">
       <h2>O que as pessoas responderam</h2>
@@ -340,6 +371,82 @@
     return html + '<p class="sub nota-ab">Vendas sem reembolso feitas nos links do funil no período. Order bump = outra compra da mesma pessoa até 20 min antes ou depois.</p>';
   }
 
+  // ---------- mapa de calor ----------
+  // Grade que vem do banco: 40 colunas x 80 linhas, nas proporções da tela do celular (375 x 812) e do cartão da oferta (343 x 542).
+  const GRADE = { nx: 40, ny: 80 };
+  const FUNDOS = {
+    tela: { proporcao: 375 / 812, nota: "Fundo ilustrativo: a conversa muda a cada momento; o mapa mostra em que parte da tela as pessoas tocam. Só visitas no celular.",
+      blocos: [["topo-tela", 0, 0, 1, 0.079, "Central de Voos"], ["linha-cinza", 0.17, 0.13, 0.42, 0.05, ""], ["linha-cinza", 0.17, 0.2, 0.72, 0.09, "mensagens do Henrique"], ["linha-cinza", 0.17, 0.31, 0.62, 0.07, ""],
+        ["escura", 0.62, 0.42, 0.33, 0.06, "resposta"], ["linha-cinza", 0.17, 0.52, 0.72, 0.12, ""], ["contorno", 0.2, 0.7, 0.36, 0.06, "botões"], ["contorno", 0.6, 0.7, 0.36, 0.06, ""], ["contorno", 0.2, 0.78, 0.36, 0.06, ""], ["contorno", 0.6, 0.78, 0.36, 0.06, ""]] },
+    oferta: { proporcao: 343 / 542, nota: "Toques dentro do cartão da oferta (os blocos estão na posição real do cartão no celular).",
+      blocos: [["linha-cinza", 0, 0, 1, 0.166, "Comunidade VIP · 55% OFF"], ["contorno", 0.061, 0.19, 0.878, 0.2, "De R$ 67,06 por R$ 30,18/mês"], ["contorno", 0.061, 0.406, 0.878, 0.132, "Cupom"], ["escura", 0.693, 0.431, 0.214, 0.081, "Copiar"],
+        ["contorno", 0.061, 0.568, 0.878, 0.083, "Tempo do cupom"], ["escura", 0.061, 0.676, 0.878, 0.115, "Entrar para o VIP"], ["contorno", 0.061, 0.821, 0.878, 0.14, "Garantia de 7 dias"]] },
+  };
+  // Rampa de um tom só (laranja), do claro (poucos toques) ao escuro (muitos).
+  const RAMPA = [[254, 215, 170], [251, 146, 60], [234, 88, 12], [154, 52, 18]];
+  const corDaRampa = (t) => { const s = Math.min(Math.max(t, 0), 1) * (RAMPA.length - 1), i = Math.min(Math.floor(s), RAMPA.length - 2), f = s - i; return RAMPA[i].map((c, k) => Math.round(c + (RAMPA[i + 1][k] - c) * f)); };
+  let tipoCalor = "tela";
+  function mapaDeCalor(d) {
+    const fundo = FUNDOS[tipoCalor], quadro = $("calorQuadro");
+    const pontos = (d.toques || []).filter((t) => t.tipo === tipoCalor).map((t) => ({ gx: +t.gx, gy: +t.gy, n: +t.toques, raiva: +t.raiva }));
+    const total = pontos.reduce((s, p) => s + p.n, 0);
+    quadro.className = "calor-quadro " + tipoCalor;
+    quadro.style.aspectRatio = String(fundo.proporcao);
+    quadro.innerHTML = fundo.blocos.map(([cls, x, y, w, h, txt]) => '<div class="esq ' + cls + '" style="left:' + x * 100 + "%;top:" + y * 100 + "%;width:" + w * 100 + "%;height:" + h * 100 + '%">' + esc(txt) + "</div>").join("") + '<canvas aria-hidden="true"></canvas>';
+    const canvas = quadro.querySelector("canvas");
+    $("calorLegenda").innerHTML = '<div class="calor-escala"><small>menos</small><i></i><small>mais toques</small></div>' + fmt(total) + " toques no período. " + esc(fundo.nota);
+    requestAnimationFrame(() => desenharCalor(canvas, pontos));
+    canvas.addEventListener("mousemove", (e) => (canvas.dataset.dica = dicaDoPonto(canvas, pontos, total, e)));
+    canvas.addEventListener("touchstart", (e) => (canvas.dataset.dica = dicaDoPonto(canvas, pontos, total, e.touches[0])), { passive: true });
+    listaDeToques(d);
+  }
+  function desenharCalor(canvas, pontos) {
+    const dpr = window.devicePixelRatio || 1, W = Math.round(canvas.clientWidth * dpr), H = Math.round(canvas.clientHeight * dpr);
+    if (!W || !H) return;
+    canvas.width = W; canvas.height = H;
+    if (!pontos.length) return;
+    // 1) acumula a intensidade em tons de cinza (alfa); 2) pinta cada pixel com a cor da rampa.
+    const sombra = document.createElement("canvas"); sombra.width = W; sombra.height = H;
+    const s = sombra.getContext("2d"), max = Math.max(...pontos.map((p) => p.n)), raio = Math.max(W, H) * 0.055;
+    for (const p of pontos) {
+      const x = ((p.gx + 0.5) / GRADE.nx) * W, y = ((p.gy + 0.5) / GRADE.ny) * H, a = 0.18 + 0.82 * (p.n / max);
+      const g = s.createRadialGradient(x, y, 0, x, y, raio);
+      g.addColorStop(0, "rgba(0,0,0," + a + ")"); g.addColorStop(1, "rgba(0,0,0,0)");
+      s.fillStyle = g; s.fillRect(x - raio, y - raio, raio * 2, raio * 2);
+    }
+    const img = s.getImageData(0, 0, W, H), px = img.data;
+    for (let i = 0; i < px.length; i += 4) {
+      const a = px[i + 3] / 255;
+      if (a < 0.02) { px[i + 3] = 0; continue; }
+      const [r, g, b] = corDaRampa(a);
+      px[i] = r; px[i + 1] = g; px[i + 2] = b; px[i + 3] = Math.round(Math.min(1, 0.25 + a) * 0.85 * 255);
+    }
+    canvas.getContext("2d").putImageData(img, 0, 0);
+  }
+  function dicaDoPonto(canvas, pontos, total, e) {
+    const r = canvas.getBoundingClientRect(), gx = ((e.clientX - r.left) / r.width) * GRADE.nx, gy = ((e.clientY - r.top) / r.height) * GRADE.ny;
+    const perto = pontos.filter((p) => Math.abs(p.gx + 0.5 - gx) <= 3 && Math.abs(p.gy + 0.5 - gy) <= 3);
+    const n = perto.reduce((s, p) => s + p.n, 0), raiva = perto.reduce((s, p) => s + p.raiva, 0);
+    return n ? "<b>" + fmt(n) + " toques</b> nesta região<br>" + pctTxt(pct(n, total)) + " de todos os toques" + (raiva ? "<br>" + fmt(raiva) + " toques de raiva" : "") : "Nenhum toque aqui";
+  }
+  function listaDeToques(d) {
+    const alvos = (d.toques || []).filter((t) => t.tipo === "alvo").map((t) => ({ nome: t.chave, n: +t.toques, s: +t.sessoes, uteis: +t.uteis, raiva: +t.raiva })).sort((a, b) => b.n - a.n);
+    const total = alvos.reduce((s, a) => s + a.n, 0);
+    if (!total) { $("calorLista").innerHTML = '<div class="vazio peq">Ainda não há toques registrados nesse período.</div>'; return; }
+    const mortos = alvos.filter((a) => !a.uteis).reduce((s, a) => s + a.n, 0), raiva = alvos.reduce((s, a) => s + a.raiva, 0);
+    $("calorLista").innerHTML = '<p class="calor-resumo"><b>' + pctTxt(pct(mortos, total)) + "</b> dos toques foram em coisas que não são botão" + (raiva ? " · <b>" + fmt(raiva) + "</b> toques de raiva (3 toques rápidos no mesmo lugar)" : "") + ".</p>" +
+      '<div class="tabela"><table><thead><tr><th>O que foi tocado</th><th class="num">Toques</th><th class="num">Pessoas</th></tr></thead><tbody>' +
+      alvos.slice(0, 14).map((a) => "<tr><td>" + esc(a.nome) + (!a.uteis ? '<span class="tag-morto">não é botão</span>' : "") + (a.raiva ? '<span class="tag-raiva">' + fmt(a.raiva) + " de raiva</span>" : "") + '</td><td class="num">' + fmt(a.n) + " <small>(" + pctTxt(pct(a.n, total)) + ')</small></td><td class="num">' + fmt(a.s) + "</td></tr>").join("") +
+      "</tbody></table></div>";
+  }
+  $("abasCalor").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-tipo]"); if (!b) return;
+    tipoCalor = b.dataset.tipo;
+    [...$("abasCalor").children].forEach((x) => x.setAttribute("aria-selected", x === b ? "true" : "false"));
+    if (ultimo) mapaDeCalor(ultimo);
+  });
+  window.addEventListener("resize", () => { if (ultimo) mapaDeCalor(ultimo); });
+
   function respostas(d) {
     const por = {};
     for (const r of d.respostas || []) (por[r.pergunta] = por[r.pergunta] || []).push({ valor: r.valor, n: +r.sessoes });
@@ -389,7 +496,7 @@
       if (!r.ok) throw new Error("HTTP " + r.status);
       ultimo = await r.json();
       preencherFiltros(ultimo.filtros || []);
-      kpis(ultimo); serie(ultimo); funilEab(ultimo); respostas(ultimo); trafego(ultimo); dispositivosEHoras(ultimo);
+      kpis(ultimo); serie(ultimo); funilEab(ultimo); mapaDeCalor(ultimo); respostas(ultimo); trafego(ultimo); dispositivosEHoras(ultimo);
       $("rodape").textContent = "Atualizado às " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) + " · atualiza sozinho a cada minuto";
       $("rodape").classList.remove("erro");
     } catch (e) {
