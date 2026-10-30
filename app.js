@@ -22,11 +22,8 @@
     const n = m[0].slice(0, 30);
     return n.charAt(0).toUpperCase() + n.slice(1).toLowerCase();
   })();
-  // Funil frio (?f=voar): quem comentou VOAR na live do Instagram e não conhece o grupo gratuito.
-  // Venda direta do VIP; quem travar ou não comprar recebe o link do grupo gratuito depois de 90 s.
-  const FRIO = params.get("f") === "voar" || C.FUNIL === "voar";
   let TOTAL = 8;
-  const dados ={ nome: "", ondeCompra: "", milhas: "", destino: null, quando: null, pessoas: 1, origem: null };
+  const dados = { nome: "", ondeCompra: "", milhas: "", destino: null, quando: null, pessoas: 1, origem: null };
   const eventos = (window.dataLayer = window.dataLayer || []);
 
   // ---------- testes A/B ----------
@@ -62,7 +59,7 @@
   // No modo teste (?teste=1) não grava nada, a não ser com ?metricas=1 (aí marca como teste e o painel separa).
   const SESSAO = window.crypto && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
   const gravar = !!C.METRICAS_URL && (!teste || params.get("metricas") === "1");
-  const EVENTOS_PAINEL = new Set(["inicio", "aceitou", "etapa", "promo_exemplo", "resultado", "abriu_presente", "oferta", "checkout", "copiou_cupom", "abriu_duvidas", "duvida", "atendente", "resposta", "erro", "toque", "grupo_oferecido", "grupo_gratis"]);
+  const EVENTOS_PAINEL = new Set(["inicio", "aceitou", "etapa", "promo_exemplo", "resultado", "abriu_presente", "oferta", "checkout", "copiou_cupom", "abriu_duvidas", "duvida", "atendente", "resposta", "erro", "toque"]);
   const INICIO_VISITA = Date.now();
   let filaMetricas = [];
   function despachar(saindo) {
@@ -90,8 +87,7 @@
       destino: d && d.cidade, regiao: d ? regiaoDe(d) : null, origem: dados.origem && dados.origem.cidade, pessoas: dados.pessoas,
       utm_source: params.get("utm_source"), utm_medium: params.get("utm_medium"), utm_campaign: params.get("utm_campaign"), utm_term: params.get("utm_term"),
       dispositivo: window.innerWidth < 768 ? "celular" : "computador", teste,
-      extra: Object.assign({ ms: Date.now() - INICIO_VISITA }, LISTA_EXP.length ? { testes: TESTES } : null, FRIO ? { funil: "voar" } : null,
-        evento === "grupo_oferecido" ? { motivo: extra && extra.motivo } : null,
+      extra: Object.assign({ ms: Date.now() - INICIO_VISITA }, LISTA_EXP.length ? { testes: TESTES } : null,
         // De onde veio o dado: nome do link ou digitado; cidade pelo DDD ou digitada.
         { nome_origem: NOME_LINK ? "link" : dados.nome ? "digitado" : undefined, cidade_origem: dados.cidadeOrigem },
         evento === "checkout" ? { link: extra && extra.link } : null,
@@ -569,12 +565,6 @@
     { icone: "🎓", titulo: "Curso completo de milhas", texto: "Vídeo aulas bem explicativas de como decolar no mundo das milhas." },
     { icone: "⚖️", titulo: "Advogada do viajante", texto: "Suporte <b>individual</b> com a nossa advogada especializada em direito do viajante." },
     { icone: "🚀", titulo: "Grupo de Estratégias", texto: "Como acumular e multiplicar milhas, cartões, salas VIP e oportunidades em primeira mão." },
-  ];
-  // Funil frio: no lugar do Grupo Grátis (que essa pessoa nem conhece), o jeito de sempre de procurar passagem.
-  const SOZINHO = [
-    ["dor", "Horas pesquisando em vários sites"], ["dor", "Só as tarifas comuns (as mais caras)"], ["dor", "Preço que sobe a cada pesquisa"],
-    ["nao", "Tarifas promocionais escondidas"], ["nao", "Promoções chegando no WhatsApp"], ["nao", "Comprar sem milhas, no Pix ou cartão"],
-    ["nao", "Aviso quando o preço baixa"], ["nao", "Ajuda de especialistas"],
   ];
 
   // ---------- promoção de exemplo (o "print" do WhatsApp) ----------
@@ -1300,13 +1290,7 @@
 
     // Abertura: boas-vindas, o diagnóstico e a promessa do fim (texto do dono, 17/10/2026).
     const aberturaVersao = EXP && EXP.variantes && EXP.variantes[variante] && EXP.variantes[variante].abertura;
-    if (FRIO) vigiarParada();
-    // Funil frio: a pessoa veio da live e ainda não conhece a Central. Abre com o VOAR e com quem é o Henrique.
-    const abertura = FRIO ? [
-      "✈️ Oii, que bom que você comentou *VOAR*! Aqui é o Henrique, da *Central de Voos*.",
-      "Desde 2020 a minha equipe ajuda brasileiros a *viajar pagando menos*: já são *mais de 17 mil clientes* 🙌",
-      "Preparei um *diagnóstico rápido* pra você: em *2 minutinhos* você descobre *o quanto pode economizar* na sua próxima viagem. Bora??",
-    ] : Array.isArray(aberturaVersao) && aberturaVersao.length ? aberturaVersao : [
+    const abertura = Array.isArray(aberturaVersao) && aberturaVersao.length ? aberturaVersao : [
       txt("abertura1", "✈️ Oii, que bom que você veio! Eu preparei um *diagnóstico rápido* pra você: em *menos de 2 minutos*, você descobre *o quanto* pode economizar na sua *próxima viagem*!"),
       txt("abertura2", "E no final ainda te mostro como *pagar a metade do preço* nas passagens com a nossa Comunidade VIP. Bora??"),
     ];
@@ -1402,14 +1386,14 @@
       await ele("Vamoos ✈️✈️✈️");
       await ele("Porém, como vc não tem muitas milhas ou não tem nada, a coisa certa pra você é a Comunidade VIP!");
       await ele("lá vc consegue usar essas promoções pagando com PIX ou Cartão de Crédito 🙏");
-      await ele(FRIO ? "posso te mostrar o que muda quando você para de procurar sozinho e entra na Comunidade Vip?" : "posso te mostrar as diferenças entre o grupo grátis e a Comunidade Vip?");
+      await ele("posso te mostrar as diferenças entre o grupo grátis e a Comunidade Vip?");
       await opcoes([{ texto: "Pode sim!", principal: true }]);
     }
     etapa(3);
 
     // Grátis × VIP.
     await digitando(1200);
-    linha("ele", '<div class="cols"><div class="col"><h4>' + (FRIO ? "Procurando sozinho" : "Grupo Grátis") + "</h4><ul>" + (FRIO ? SOZINHO : GRATIS).map((g) => '<li class="' + g[0] + '">' + esc(g[1]) + "</li>").join("") + "</ul></div></div>", "cartao comparar um");
+    linha("ele", '<div class="cols"><div class="col"><h4>Grupo Grátis</h4><ul>' + GRATIS.map((g) => '<li class="' + g[0] + '">' + esc(g[1]) + "</li>").join("") + "</ul></div></div>", "cartao comparar um");
     await digitando(2000);
     linha("ele", '<div class="cols"><div class="col vip"><h4>Comunidade Vip 👑</h4><ul>' + VIP.map((v) => '<li class="sim">' + esc(v) + "</li>").join("") + "</ul></div></div>", "cartao comparar um");
     await digitando(4000);
@@ -1423,7 +1407,7 @@
     etapa(4);
 
     // Prova.
-    await ele("Boa!! ✈️ \ndeixa eu te mostrar o que realmente muda pra quem entra no Vip — aí você vai entender o motivo de tanta gente " + (FRIO ? "entrar" : "migrar") + " no mesmo dia 👇");
+    await ele("Boa!! ✈️ \ndeixa eu te mostrar o que realmente muda pra quem entra no Vip — aí você vai entender o motivo de tanta gente migrar no mesmo dia 👇");
     await foto(IMG.carlosSantiago, "Carlos está na comunidade VIP e viajou pra Santiago por R$ 852 ida e volta 🇨🇱🔥", "Depoimento do Carlos, que viajou para Santiago");
     await foto(IMG.julianaEgito, "Outro membro, Juliana foi para o Egito por R$ 3.576 ida e volta 🇪🇬", "Depoimento da Juliana, que viajou para o Egito");
     await ele("São mais de *17 mil clientes ativos* aproveitando as promoções da nossa Comunidade Vip todos os dias 🥰");
@@ -1519,7 +1503,6 @@
     await ele("Esse é o seu *presente de Black Friday*: um *CUPOM exclusivo* pra acessar a Comunidade Vip com o maior desconto. APROVEITA!");
 
     progresso(1);
-    ofertaNaTela = true;
     registrar("oferta", {});
     const oferta = await cartao(
       '<div class="oferta-topo"><img src="midia/logo-avatar.png" width="54" height="54" alt=""><div><h3>Comunidade VIP</h3><p>Central de Voos</p></div><span class="off">55% OFF</span></div>' +
@@ -1575,61 +1558,12 @@
         await ele("Caso tenha alguma dúvida, me avisa aqui!");
       });
     });
-    // Funil frio: lembrete em 60 s, grupo gratuito em 90 s (se não clicou no VIP) e dúvidas em 150 s.
     setTimeout(() => emFila(async () => {
       if (clicou) return;
       await ele("Lembrando que esse desconto é exclusivo e só fica liberado por *poucos minutos*, não esqueça de aplicar o CUPOM!");
       await ele("depois você só consegue comprar o acesso quando abrirmos as vagas novamente e com o valor normal 🙁");
-    }), (FRIO ? 60000 : 90000) * ritmo);
-    if (FRIO) setTimeout(() => emFila(() => (clicou ? null : oferecerGrupo("nao_comprou"))), 90000 * ritmo);
-    setTimeout(() => emFila(() => duvidas(cta)), (FRIO ? 150000 : 120000) * ritmo);
-  }
-
-  // ---------- funil frio: o grupo gratuito como segunda opção ----------
-  // Aparece uma vez só: se a pessoa ficar 90 s parada numa pergunta (ou sair e voltar depois disso), ou se
-  // não clicar no VIP em 90 s depois da oferta. O link é o do grupo gratuito (LINK_GRUPO_GRATIS), com as UTMs.
-  let grupoOferecido = false, ofertaNaTela = false;
-  async function oferecerGrupo(motivo) {
-    if (!FRIO || grupoOferecido || !C.LINK_GRUPO_GRATIS) return;
-    grupoOferecido = true;
-    registrar("grupo_oferecido", { motivo });
-    const meio = motivo === "parou_no_meio";
-    mostrarDigitando();
-    await esperar(1400);
-    linha("ele", fmt(meio
-      ? "Ficou sem tempo agora" + (dados.nome ? ", " + dados.nome : "") + "? 🙂 Sem problema!"
-      : "Se agora ainda não é o momento de entrar no VIP" + (dados.nome ? ", " + dados.nome : "") + ", tudo bem 🙂"));
-    mostrarDigitando();
-    await esperar(2200);
-    linha("ele", fmt(meio
-      ? "Entra no nosso *grupo gratuito* no WhatsApp e já começa a receber *promoções de passagem todos os dias*. Quando quiser, é só voltar aqui e terminar o seu diagnóstico 👇"
-      : "Entra no nosso *grupo gratuito* no WhatsApp: lá você já recebe *promoções de passagem todos os dias* e conhece o trabalho da nossa equipe de pertinho 👇"));
-    let href = C.LINK_GRUPO_GRATIS;
-    try {
-      const url = new URL(C.LINK_GRUPO_GRATIS, location.href);
-      ["utm_source", "utm_medium", "utm_campaign", "utm_term"].forEach((k) => params.get(k) && url.searchParams.set(k, params.get(k)));
-      url.searchParams.set("utm_content", motivo);
-      href = url.toString();
-    } catch (e) {}
-    const link = document.createElement("a");
-    link.className = "opcao principal grupo-gratis"; link.href = href; link.target = "_blank"; link.rel = "noopener";
-    link.textContent = "✈️ Entrar no grupo gratuito";
-    link.addEventListener("click", () => registrar("grupo_gratis", { motivo }));
-    const caixa = document.createElement("div");
-    caixa.className = "opcoes";
-    caixa.appendChild(link);
-    conversa.appendChild(caixa); rolar(true);
-  }
-  // Vigia a pergunta em aberto: conta a partir do último movimento na tela ou de quando a pergunta apareceu.
-  function vigiarParada() {
-    let emAberto = null, desde = 0;
-    setInterval(() => {
-      if (grupoOferecido || ofertaNaTela) return;
-      const atual = [...conversa.querySelectorAll(".campo, .opcoes, .bf-cartao.tocavel")].find((el) => !el.querySelector(".grupo-gratis"));
-      if (!atual) { emAberto = null; return; }
-      if (atual !== emAberto) { emAberto = atual; desde = Date.now(); }
-      if (Date.now() - Math.max(desde, ultimoMovimento) >= 90000 * ritmo) oferecerGrupo("parou_no_meio");
-    }, 2000);
+    }), 90000 * ritmo);
+    setTimeout(() => emFila(() => duvidas(cta)), 120000 * ritmo);
   }
 
   // As dúvidas de quem está quase comprando. Cada resposta volta pro botão do VIP.

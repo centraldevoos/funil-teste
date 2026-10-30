@@ -7,9 +7,6 @@ window.CONFIG = {
   // Vazio = botão mostra um aviso.
   LINK_CHECKOUT: "https://pay.hub.la/Muxrk9khr04JS10t58pm",
   CUPOM: "BOASVINDAS",
-  // Funil frio (?f=voar, live do Instagram): página de entrada no grupo gratuito, oferecida a quem trava no meio
-  // ou não compra em 90 s. Vazio = não oferece.
-  LINK_GRUPO_GRATIS: "https://grupogratuito.centraldevoos.com/",
   // WhatsApp do atendimento: aparece como "Falar com um atendente" na lista de dúvidas do fim. Vazio = não aparece.
   LINK_ATENDENTE: "https://api.whatsapp.com/send/?phone=553182671759&text=Estou+com+d%C3%BAvidas+sobre+o+VIP&type=phone",
 
