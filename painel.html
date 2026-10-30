@@ -178,8 +178,8 @@
 <script>
   // Endereço da função que devolve as métricas (Supabase, projeto CDV Financeiro).
   const API = "https://qjyswtxspktkqoyqjjwp.supabase.co/functions/v1/funil-metricas";
-  // true enquanto o diagnóstico 2 usar o mesmo link de checkout do diagnóstico (trocar pra false quando tiver link próprio).
-  const C_LINK_COMPARTILHADO = true;
+  // true se os dois funis voltarem a usar o mesmo link de checkout (desde 30/10 o diagnóstico 2 tem link próprio na Hub.la).
+  const C_LINK_COMPARTILHADO = false;
   // Etapas do funil, na ordem. "opcional" = nem todo mundo passa (quem chega com telefone no link pula a cidade).
   const ETAPAS = [
     { ev: "inicio", nome: "Abriu o site" },
