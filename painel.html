@@ -366,7 +366,7 @@
     const vs = Object.keys(por).sort();
     if (!vs.length) return "";
     const visitas = (v) => (contagem[v] ? contagem[v].inicio || 0 : vs.length === 1 ? Object.values(contagem).reduce((t, c) => t + (c.inicio || 0), 0) : 0);
-    let html = '<h3 class="sub-ab">Vendas na Hub.la</h3><div class="tabela"><table><thead><tr><th>Versão</th><th class="num">Cliques no checkout</th><th class="num">Vendas</th><th class="num">Venda ÷ clique</th><th class="num">Com order bump</th><th class="num">Receita</th><th class="num">Receita por visita</th></tr></thead><tbody>' +
+    let html = '<h3 class="sub-ab">Vendas na Hub.la</h3><div class="tabela"><table><thead><tr><th>Versão</th><th class="num">Cliques no checkout</th><th class="num">Vendas</th><th class="num">Venda ÷ clique</th><th class="num">Com order bump</th><th class="num">Receita líquida</th><th class="num">Receita líquida por visita</th></tr></thead><tbody>' +
       vs.map((v) => { const o = por[v], n = visitas(v); return "<tr><td>" + (v === "(todos)" ? "Todas" : rotulo(v)) + '</td><td class="num">' + fmt(o.cliques) + '</td><td class="num"><b>' + fmt(o.vendas) + '</b></td><td class="num">' + pctTxt(pct(o.vendas, o.cliques)) + '</td><td class="num">' + fmt(o.bump) + " <small>(" + pctTxt(pct(o.bump, o.vendas)) + ')</small></td><td class="num">' + reais(o.receita) + '</td><td class="num">' + (n ? reais(o.receita / n) : "—") + "</td></tr>"; }).join("") +
       "</tbody></table></div>";
     if (vs.length >= 2) {
@@ -381,9 +381,9 @@
     const links = {};
     for (const l of d.vendas || []) { const o = (links[l.link] = links[l.link] || { cliques: 0, vendas: 0, receita: 0 }); o.cliques += +l.cliques; o.vendas += +l.vendas; o.receita += +l.receita_principal + +l.receita_bump; }
     const ls = Object.keys(links).sort((a, b) => links[b].cliques - links[a].cliques);
-    if (ls.length) html += '<h3 class="sub-ab">Por link do checkout</h3><div class="tabela"><table><thead><tr><th>Link da Hub.la</th><th class="num">Cliques no checkout</th><th class="num">Vendas</th><th class="num">Receita</th></tr></thead><tbody>' +
+    if (ls.length) html += '<h3 class="sub-ab">Por link do checkout</h3><div class="tabela"><table><thead><tr><th>Link da Hub.la</th><th class="num">Cliques no checkout</th><th class="num">Vendas</th><th class="num">Receita líquida</th></tr></thead><tbody>' +
       ls.map((k) => "<tr><td><code>" + esc(k) + '</code></td><td class="num">' + fmt(links[k].cliques) + '</td><td class="num"><b>' + fmt(links[k].vendas) + '</b></td><td class="num">' + reais(links[k].receita) + "</td></tr>").join("") + "</tbody></table></div>";
-    return html + '<p class="sub nota-ab">Vendas sem reembolso feitas nos links do funil no período. Order bump = outra compra da mesma pessoa até 20 min antes ou depois.</p>';
+    return html + '<p class="sub nota-ab">Vendas sem reembolso feitas nos links do funil no período. Order bump = outra compra da mesma pessoa até 20 min antes ou depois. Receita = líquida (o que fica pra empresa depois do cupom e das taxas da Hub.la).</p>';
   }
 
   // ---------- mapa de calor ----------
