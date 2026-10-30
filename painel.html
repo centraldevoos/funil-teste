@@ -122,10 +122,9 @@
 </head>
 <body>
   <header class="topo"><div class="topo-in">
-    <div class="marca"><img src="midia/logo-avatar.png" alt=""><div><strong>Painel do funil</strong><span>Diagnóstico de economia · métricas, etapas e testes A/B</span></div></div>
+    <div class="marca"><img src="midia/logo-avatar.png" alt=""><div><strong id="tituloPainel">Painel do funil</strong><span id="subPainel">Diagnóstico de economia · métricas, etapas e testes A/B</span></div></div>
     <div class="filtros">
       <select id="dias" aria-label="Período"><option value="1">Últimas 24 h</option><option value="7" selected>Últimos 7 dias</option><option value="30">Últimos 30 dias</option><option value="90">Últimos 90 dias</option></select>
-      <select id="filtroFunil" aria-label="Funil"><option value="">Todos os funis</option><option value="diagnostico">Diagnóstico (/diagnostico)</option><option value="diagnostico2">Diagnóstico 2 · live (/diagnostico2)</option></select>
       <select id="experimento" aria-label="Teste A/B"></select>
       <select id="fonte" aria-label="Origem do tráfego"></select>
       <label class="chave"><input type="checkbox" id="teste"> Dados de teste</label>
@@ -178,8 +177,13 @@
 <script>
   // Endereço da função que devolve as métricas (Supabase, projeto CDV Financeiro).
   const API = "https://qjyswtxspktkqoyqjjwp.supabase.co/functions/v1/funil-metricas";
-  // true se os dois funis voltarem a usar o mesmo link de checkout (desde 30/10 o diagnóstico 2 tem link próprio na Hub.la).
-  const C_LINK_COMPARTILHADO = false;
+  // Cada funil tem o seu painel: o do repo funil-teste2 (ou ?funil=diagnostico2) mostra só o diagnóstico 2 (live do Instagram).
+  const FUNIL = /funil-teste2|diagnostico2/.test(location.pathname) || new URLSearchParams(location.search).get("funil") === "diagnostico2" ? "diagnostico2" : "diagnostico";
+  if (FUNIL === "diagnostico2") {
+    document.title = "Painel do diagnóstico 2 | Central de Voos";
+    document.getElementById("tituloPainel").textContent = "Painel do diagnóstico 2";
+    document.getElementById("subPainel").textContent = "Live do Instagram (centraldevoos.com/diagnostico2) · métricas e etapas";
+  }
   // Etapas do funil, na ordem. "opcional" = nem todo mundo passa (quem chega com telefone no link pula a cidade).
   const ETAPAS = [
     { ev: "inicio", nome: "Abriu o site" },
@@ -251,9 +255,6 @@
       el.innerHTML = '<option value="">' + primeiro + "</option>" + valores.map((f) => '<option value="' + esc(f.valor) + '">' + esc(f.valor) + " (" + fmt(f.sessoes) + ")</option>").join("");
       if ([...el.options].some((o) => o.value === atual)) el.value = atual;
     };
-    // Funil: as opções são fixas; só acrescenta o número de visitas de cada um.
-    const fun = $("filtroFunil");
-    filtros.filter((f) => f.tipo === "funil").forEach((f) => { const o = [...fun.options].find((x) => x.value === f.valor); if (o) o.textContent = (o.dataset.rotulo || (o.dataset.rotulo = o.textContent)) + " (" + fmt(f.sessoes) + ")"; });
     sel("experimento", "experimento", "Todos os testes");
     sel("fonte", "fonte", "Todas as origens");
   }
@@ -329,8 +330,6 @@
       ab = '<div class="veredito' + (ganhou ? " ganhou" : "") + '"><div class="ic">' + (ganhou ? "🏆" : "🧪") + '</div><div><p class="t">' + titulo + '</p><p class="s">Taxa de checkout (checkout ÷ visitas) — ' + sub + "</p></div></div>";
     }
     $("ab").innerHTML = "<h2>Teste A/B</h2>" + ab + vendasHub(d, contagem);
-    // Os dois funis usam hoje o mesmo link de checkout: as vendas por link não se separam por funil (cliques, sim).
-    if ($("filtroFunil").value && (C_LINK_COMPARTILHADO)) $("ab").insertAdjacentHTML("beforeend", '<p class="sub nota-ab">⚠️ Os dois funis usam o mesmo link de checkout da Hub.la, então as <b>vendas</b> acima somam os dois. Visitas, etapas e cliques no checkout já estão separados. Pra separar as vendas, o diagnóstico 2 precisa de um link de checkout próprio.</p>');
     // Funil
     $("legenda").innerHTML = variantes.map((v, i) => '<span><i style="background:' + CORES[i % CORES.length] + '"></i>' + rotulo(v) + " · " + fmt(contagem[v].inicio || 0) + " visitas</span>").join("");
     const maiorQueda = {};
@@ -497,7 +496,7 @@
 
   async function carregar() {
     const q = new URLSearchParams({ dias: $("dias").value });
-    if ($("filtroFunil").value) q.set("funil", $("filtroFunil").value);
+    if (FUNIL === "diagnostico2") q.set("funil", "diagnostico2");
     if ($("experimento").value) q.set("experimento", $("experimento").value);
     if ($("fonte").value) q.set("fonte", $("fonte").value);
     if ($("teste").checked) q.set("teste", "1");
@@ -514,9 +513,7 @@
       $("rodape").classList.add("erro");
     }
   }
-  // ?funil=diagnostico2 no endereço já abre o painel no funil da live.
-  { const f = new URLSearchParams(location.search).get("funil"); if (f && [...$("filtroFunil").options].some((o) => o.value === f)) $("filtroFunil").value = f; }
-  ["dias", "filtroFunil", "experimento", "fonte", "teste"].forEach((id) => $(id).addEventListener("change", carregar));
+  ["dias", "experimento", "fonte", "teste"].forEach((id) => $(id).addEventListener("change", carregar));
   carregar();
   setInterval(carregar, 60000);
 </script>
