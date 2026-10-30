@@ -514,16 +514,16 @@
     await esperar(500);
   }
   function contar(el, ate, ms) {
-    const ini = performance.now(), dur = (ms || 1700) * ritmo;
-    // O relógio é sempre o performance.now(): o horário que o requestAnimationFrame entrega pode vir em outra base
-    // em alguns celulares (era isso que fazia o contador mostrar números absurdos). E o valor fica sempre entre 0 e o final.
-    (function passo() {
-      const p = Math.max(0, Math.min((performance.now() - ini) / dur, 1)), e = 1 - Math.pow(1 - p, 4);
-      el.textContent = Math.max(0, Math.min(ate, Math.round(ate * e))).toLocaleString("pt-BR");
-      if (p < 1) requestAnimationFrame(passo);
-    })();
-    // Garante o número final mesmo se a aba estiver em segundo plano (o navegador pausa a animação).
-    setTimeout(() => (el.textContent = Math.round(ate).toLocaleString("pt-BR")), dur + 50);
+    // Conta subindo com um relógio próprio (não depende do requestAnimationFrame, que alguns celulares pulam ou
+    // pausam): acelera no começo e desacelera no fim, e o número nunca passa do final nem volta.
+    const fim = Math.max(0, Math.round(ate)), dur = (ms || 1700) * ritmo, ini = Date.now();
+    let atual = 0;
+    el.textContent = "0";
+    const t = setInterval(() => {
+      const p = Math.min((Date.now() - ini) / dur, 1), alvo = Math.round(fim * (1 - Math.pow(1 - p, 3)));
+      if (alvo > atual) { atual = alvo; el.textContent = atual.toLocaleString("pt-BR"); }
+      if (p >= 1) { clearInterval(t); el.textContent = fim.toLocaleString("pt-BR"); }
+    }, 40);
   }
   // Contagem regressiva de 15 minutos a partir do momento em que a oferta aparece.
   function relogio15(el) {
