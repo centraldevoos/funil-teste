@@ -133,6 +133,7 @@
   <main>
     <section class="kpis" id="kpis"></section>
     <section class="cartao"><h2 id="tituloSerie">Visitas por dia</h2><p class="sub">Passe o dedo ou o mouse nas colunas pra ver visitas, ofertas e checkouts.</p><div id="serie"></div></section>
+    <section class="cartao" id="utm"></section>
     <section class="cartao" id="ab"></section>
     <section class="cartao funil">
       <h2>Funil por etapa</h2>
@@ -376,6 +377,12 @@
       html += '<p class="sub nota-ab">' + (ganhou ? "🏆 <b>" + rotulo(melhor.v) + "</b> converte mais no checkout, com " + conf + "% de confiança." : pouco ? "Ainda é cedo: espere pelo menos 100 cliques no checkout e 20 vendas somando as versões." : "Empate técnico em vendas por enquanto (" + conf + "% de confiança).") +
         " Receita por clique: " + rec.map((t) => "<b>" + esc(t.v) + "</b> " + reais(t.rpc)).join(" · ") + ". Se uma versão vende um pouco menos mas fatura mais por clique (por causa do order bump), ela pode valer mais a pena.</p>";
     }
+    // Por link do checkout: de qual link veio cada venda.
+    const links = {};
+    for (const l of d.vendas || []) { const o = (links[l.link] = links[l.link] || { cliques: 0, vendas: 0, receita: 0 }); o.cliques += +l.cliques; o.vendas += +l.vendas; o.receita += +l.receita_principal + +l.receita_bump; }
+    const ls = Object.keys(links).sort((a, b) => links[b].cliques - links[a].cliques);
+    if (ls.length) html += '<h3 class="sub-ab">Por link do checkout</h3><div class="tabela"><table><thead><tr><th>Link da Hub.la</th><th class="num">Cliques no checkout</th><th class="num">Vendas</th><th class="num">Receita</th></tr></thead><tbody>' +
+      ls.map((k) => "<tr><td><code>" + esc(k) + '</code></td><td class="num">' + fmt(links[k].cliques) + '</td><td class="num"><b>' + fmt(links[k].vendas) + '</b></td><td class="num">' + reais(links[k].receita) + "</td></tr>").join("") + "</tbody></table></div>";
     return html + '<p class="sub nota-ab">Vendas sem reembolso feitas nos links do funil no período. Order bump = outra compra da mesma pessoa até 20 min antes ou depois.</p>';
   }
 
@@ -471,6 +478,17 @@
   }
 
   let tipoTrafego = "fonte", ultimo = null;
+  // Com UTM × sem UTM: quem chegou pelo link com utm (ex.: a DM da live) e quem abriu o site sem utm.
+  function comUtm(d) {
+    const f = (d.segmentos || []).filter((x) => x.tipo === "fonte");
+    const soma = (lista) => lista.reduce((t, x) => ({ v: t.v + +x.visitas, o: t.o + +x.ofertas, c: t.c + +x.checkouts }), { v: 0, o: 0, c: 0 });
+    const com = soma(f.filter((x) => x.valor !== "(direto)")), sem = soma(f.filter((x) => x.valor === "(direto)"));
+    const camp = (d.segmentos || []).filter((x) => x.tipo === "campanha" && x.valor !== "(sem campanha)").map((x) => esc(x.valor)).join(", ");
+    const linha = (rot, o) => "<tr><td>" + rot + '</td><td class="num">' + fmt(o.v) + '</td><td class="num">' + pctTxt(pct(o.o, o.v)) + " <small>(" + fmt(o.o) + ')</small></td><td class="num"><b>' + pctTxt(pct(o.c, o.v)) + "</b> <small>(" + fmt(o.c) + ")</small></td></tr>";
+    $("utm").innerHTML = '<h2>Com UTM × sem UTM</h2><p class="sub">Quem chegou pelo link com utm' + (camp ? " (campanha: " + camp + ")" : "") + " e quem abriu o site sem utm (link direto, testes, link compartilhado).</p>" +
+      '<div class="tabela"><table><thead><tr><th></th><th class="num">Visitas</th><th class="num">Viu a oferta</th><th class="num">Checkout</th></tr></thead><tbody>' +
+      linha("Com UTM", com) + linha("Sem UTM", sem) + "</tbody></table></div>";
+  }
   function trafego(d) {
     const linhas = (d.segmentos || []).filter((s) => s.tipo === tipoTrafego && +s.visitas > 0).sort((a, b) => b.visitas - a.visitas).slice(0, 12);
     if (!linhas.length) { $("trafego").innerHTML = '<div class="vazio peq">Sem visitas com esse dado no período.</div>'; return; }
@@ -505,7 +523,7 @@
       if (!r.ok) throw new Error("HTTP " + r.status);
       ultimo = await r.json();
       preencherFiltros(ultimo.filtros || []);
-      kpis(ultimo); serie(ultimo); funilEab(ultimo); mapaDeCalor(ultimo); respostas(ultimo); trafego(ultimo); dispositivosEHoras(ultimo);
+      kpis(ultimo); comUtm(ultimo); serie(ultimo); funilEab(ultimo); mapaDeCalor(ultimo); respostas(ultimo); trafego(ultimo); dispositivosEHoras(ultimo);
       $("rodape").textContent = "Atualizado às " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) + " · atualiza sozinho a cada minuto";
       $("rodape").classList.remove("erro");
     } catch (e) {
