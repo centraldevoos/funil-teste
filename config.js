@@ -37,7 +37,7 @@ window.CONFIG = {
     julianaEgito: "midia/fluxo/julianaEgito.jpg",
     comoAplicarCupom: "midia/fluxo/comoAplicarCupom.jpg",
     // Black a R$ 397 (05/11/2026): a mesma arte do fluxo do DataCrazy, "quanto custaria ter tudo isso por 1 ano".
-    tabela397: "midia/fluxo/tabela-397.jpg",
+    tabela397: "midia/fluxo/tabelaBlack.jpg",
   },
 
   // Promoção no fim do funil (o "print" do WhatsApp com a promoção pro destino da pessoa).

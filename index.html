@@ -171,14 +171,15 @@
   .comparar .bonus-roxo li b { color: #3b0764; }
   .comparar .bonus-rodape { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid rgba(76, 29, 149, .25); font-size: 14px; color: var(--tinta-2); }
   .comparar .bonus-rodape b { color: #5b21b6; }
-  .oferta { padding: 0; overflow: hidden; max-width: 520px; }
-  .oferta-topo { background: var(--tinta); color: #fff; padding: 18px 16px; display: flex; gap: 14px; align-items: center; }
-  .oferta-topo img { width: 54px; height: 54px; border-radius: 14px; object-fit: cover; flex: none; }
-  .oferta-topo h3 { margin: 0; white-space: nowrap; font-size: clamp(16px, 4.6vw, 20px); letter-spacing: -.02em; line-height: 1.15; }
+  .oferta { padding: 0; overflow: hidden; max-width: 400px; }
+  .oferta-topo { background: var(--tinta); color: #fff; padding: 16px 14px; display: flex; gap: 12px; align-items: center; }
+  .oferta-topo img { width: 46px; height: 46px; border-radius: 12px; object-fit: cover; flex: none; }
+  .oferta-topo h3 { margin: 0; white-space: nowrap; font-size: clamp(15px, 4.2vw, 18px); letter-spacing: -.02em; line-height: 1.15; }
   .oferta-topo > div { min-width: 0; flex: 1; }
-  .linha.ele:has(> .oferta) .avatar { display: none; }
+  /* A oferta fica alinhada com as outras mensagens (o espaço do avatar continua) e com a mesma largura do presente. */
+  .linha.ele:has(> .oferta) .avatar { visibility: hidden; }
   .oferta-topo p { margin: 2px 0 0; color: #aeb3bb; font-size: 14px; }
-  .oferta-topo .off { margin-left: auto; align-self: flex-start; background: #fff; color: var(--tinta); font-weight: 800; font-size: 14px; padding: 4px 10px; border-radius: 8px; white-space: nowrap; }
+  .oferta-topo .off { margin-left: auto; align-self: flex-start; flex: none; background: #fff; color: var(--tinta); font-weight: 800; font-size: 12.5px; padding: 3px 8px; border-radius: 8px; white-space: nowrap; }
   .oferta-corpo { padding: 20px; }
   .preco-de { color: var(--suave); font-size: 15px; } .preco-de s { color: var(--suave); }
   .preco-por { font-size: 40px; font-weight: 800; color: var(--tinta); letter-spacing: -.04em; line-height: 1.1; margin: 2px 0; font-variant-numeric: tabular-nums; }

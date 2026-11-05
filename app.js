@@ -302,7 +302,7 @@
   async function cartao(html, classe, ms) { await digitando(Math.max(300, (ms != null ? ms : 1100) + ajuste)); return linha("ele", html, classe); }
   const eu = (texto) => linha("eu", esc(texto));
   // Tamanho real das imagens do fluxo (midia/fluxo), pra reservar o espaço certo antes de carregar.
-  const TAMANHO_IMG = { tarifaAward: [800, 813], googleParis: [800, 1422], pagouParis: [800, 1200], viagemParis: [800, 1200], carlosSantiago: [800, 1008], julianaEgito: [800, 1000], comoAplicarCupom: [800, 1000] };
+  const TAMANHO_IMG = { tarifaAward: [800, 813], googleParis: [800, 1422], pagouParis: [800, 1200], viagemParis: [800, 1200], carlosSantiago: [800, 1008], julianaEgito: [800, 1000], comoAplicarCupom: [800, 1000], tabelaBlack: [800, 1225] };
   async function foto(url, legenda, alt) {
     if (!url) return;
     await digitando(1100);
