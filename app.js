@@ -98,7 +98,10 @@
     });
     if (evento === "inicio" || evento === "checkout") despachar(evento === "checkout");
   }
-  const CUPOM = C.CUPOM || "BOASVINDAS";
+  const CUPOM = C.CUPOM || "BLACK";
+  // Teste "cupom-v1" (05/11/2026): a versão B leva o cupom BLACK já aplicado no link; a A (padrão) vai pro checkout
+  // que já mostra "de R$ 3.058 por R$ 397", sem cupom. Os textos da oferta mudam conforme a versão.
+  const COM_CUPOM = () => txt("cupomAplicado", "nao") === "sim";
 
   // ---------- utilidades ----------
   const esperar = (ms) => new Promise((r) => setTimeout(r, ms * ritmo));
@@ -1176,7 +1179,7 @@
   const vibrar = (p) => { try { if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate(p); } catch (e) {} };
 
   // O presente de Black Friday: a pessoa toca na caixa, ela treme cada vez mais forte, a tampa voa,
-  // sai um facho de luz e o cupom de 55% OFF (o cupom do config) sobe de dentro da caixa.
+  // sai um facho de luz e o presente (2 anos de acesso, o App e o Workshop ao vivo) sobe de dentro da caixa.
   function presenteBlackFriday() {
     return new Promise(async (resolve) => {
       const caixaSvg =
@@ -1213,13 +1216,14 @@
         '<div class="palco">' +
         '<div class="raios"></div><div class="halo"></div>' + faiscas +
         '<div class="facho"></div>' +
-        '<div class="bilhete"><span class="b-topo">Presente de Black Friday</span><strong class="b-pct">55% OFF</strong><span class="b-linha"></span><span class="b-cupom">Cupom <b>' + esc(CUPOM) + "</b></span></div>" +
+        '<div class="bilhete"><span class="b-topo">Presente de Black Friday</span><strong class="b-pct">2 ANOS</strong><span class="b-sub">de acesso no lugar de 1</span><span class="b-linha"></span>' +
+        '<span class="b-item">+ App Central de Voos <i>novidade</i></span><span class="b-item">+ Workshop ao vivo</span></div>' +
         '<span class="anel-toque" aria-hidden="true"></span><span class="mao-toque" aria-hidden="true">👆</span>' +
         '<div class="caixa-bf" role="button" tabindex="0" aria-label="Abrir o presente"><div class="flutua">' + caixaSvg + "</div></div>" +
         '<div class="clarao"></div>' +
         "</div>" +
         '<button type="button" class="bf-dica"><span class="bf-dica-mao" aria-hidden="true">👆</span> Toque pra abrir o presente</button>' +
-        '<p class="revelado" hidden>Você ganhou o maior desconto da Black Friday! Use o cupom <b>' + esc(CUPOM) + "</b> pra entrar na Comunidade VIP.</p>",
+        '<p class="revelado" hidden>Você ganhou a condição especial de Black Friday: <b>2 anos de acesso</b> no lugar de 1, o <b>App Central de Voos</b> e o <b>Workshop ao vivo</b>!</p>',
         "cartao bf-cartao", 800
       );
       const palco = el.querySelector(".palco"), caixa = el.querySelector(".caixa-bf"), bilhete = el.querySelector(".bilhete"),
@@ -1500,18 +1504,24 @@
     progresso(0.97);
     ajuste = 1000; // da oferta em diante, 1 s a mais de leitura por mensagem
     await presenteBlackFriday();
-    await ele("Esse é o seu *presente de Black Friday*: um *CUPOM exclusivo* pra acessar a Comunidade Vip com o maior desconto. APROVEITA!");
+    await ele("Esse é o seu *presente de Black Friday*, uma condição super especial 🖤🎁");
+    await ele("Até hoje, quem entrava na Comunidade VIP tinha só *1 ano* de acesso. Com o seu presente, você leva *2 ANOS* de acesso a tudo, pagando uma vez só! 😱");
+    await ele("E ainda ganha o *App Central de Voos* (novidade!) e o *Workshop ao vivo: O Segredo das Passagens Baratas* ✈️");
+    await foto(IMG.tabela397, "⁉️ *Quanto custaria ter acesso a tudo isso por 1 ano?*\n\nSomando tudo, seriam *R$ 1.529 por ano*. Em 2 anos, *R$ 3.058*.", "Tabela com o valor de cada entrega da Comunidade VIP");
+    await ele(COM_CUPOM() ? "E o seu *cupom BLACK* já vai aplicado no link 🎟️👇" : "E essa condição de Black Friday já vai direto no link 👇");
 
     progresso(1);
     registrar("oferta", {});
     const oferta = await cartao(
-      '<div class="oferta-topo"><img src="midia/logo-avatar.png" width="54" height="54" alt=""><div><h3>Comunidade VIP</h3><p>Central de Voos</p></div><span class="off">55% OFF</span></div>' +
+      '<div class="oferta-topo"><img src="midia/logo-avatar.png" width="54" height="54" alt=""><div><h3>Comunidade VIP</h3><p>Super Black Friday</p></div><span class="off">2 ANOS</span></div>' +
       '<div class="oferta-corpo">' +
-      '<div class="preco-de">De <s>R$ 67,06</s></div>' +
-      '<div class="preco-por">R$ 30,18 <small>/ mês</small></div>' +
-      '<div class="preco-nota">na assinatura anual</div>' +
-      '<div class="cupom"><div><span>🚨 Cupom exclusivo</span><strong>' + esc(CUPOM) + '</strong></div><button type="button" class="copiar">Copiar</button></div>' +
-      '<div class="relogio" aria-live="off"><span>⚠️ O cupom é por tempo limitado</span><b class="tempo">15:00</b></div>' +
+      '<div class="preco-de">De <s>R$ 3.058</s></div>' +
+      '<div class="preco-por"><small>12x de</small> R$ 40,34</div>' +
+      '<div class="preco-nota">ou R$ 397 à vista · <b>2 anos de acesso</b>, pagando uma vez só</div>' +
+      (COM_CUPOM()
+        ? '<div class="cupom"><div><span>✅ Cupom aplicado</span><strong>' + esc(CUPOM) + '</strong></div><span class="aplicado">Já vai no link</span></div>'
+        : '<div class="cupom"><div><span>✅ Preço de Black Friday</span><strong>2 ANOS</strong></div><span class="aplicado">Já vai no link</span></div>') +
+      '<div class="relogio" aria-live="off"><span>⚠️ Condição de Black Friday por tempo limitado</span><b class="tempo">15:00</b></div>' +
       '<a class="cta" href="#" target="_blank" rel="noopener">' + txt("botaoOferta", "Entrar para o VIP") + ' <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>' +
       '<div class="aviso">O link do checkout ainda não foi configurado (LINK_CHECKOUT em config.js).</div>' +
       '<div class="garantia"><img class="selo-img" src="midia/selo-garantia-7-dias-p.png" alt="Selo de garantia de 7 dias"><span><b>Garantia de 7 dias.</b> Se não gostar, a gente devolve todo o seu dinheiro.</span></div>' +
@@ -1522,7 +1532,7 @@
     const rodapeEl = document.querySelector(".rodape");
     if (rodapeEl) rodapeEl.hidden = false;
     const copiar = oferta.querySelector(".copiar");
-    copiar.addEventListener("click", async () => {
+    if (copiar) copiar.addEventListener("click", async () => {
       try { await navigator.clipboard.writeText(CUPOM); copiar.textContent = "Copiado ✓"; } catch (e) { copiar.textContent = CUPOM; }
       registrar("copiou_cupom", {});
     });
@@ -1552,16 +1562,14 @@
       clicou = true;
       await esperar(2500);
       emFila(async () => {
-        await ele("🚨Não se esqueça de aplicar seu CUPOM no link acima para receber seu desconto!!!");
-        await ele("INSIRA SEU *CUPOM* DESSA FORMA 👇");
-        await foto(IMG.comoAplicarCupom, "Clique em *APLICAR CUPOM* e escreva *" + CUPOM + "*.", "Onde aplicar o cupom no checkout");
+        await ele(COM_CUPOM() ? "🎟️ O *cupom Black* já está aplicado no link: é só preencher seus dados e garantir seus *2 anos* de acesso!" : "🖤 A *condição de Black Friday* já está no link: é só preencher seus dados e garantir seus *2 anos* de acesso!");
         await ele("Caso tenha alguma dúvida, me avisa aqui!");
       });
     });
     setTimeout(() => emFila(async () => {
       if (clicou) return;
-      await ele("Lembrando que esse desconto é exclusivo e só fica liberado por *poucos minutos*, não esqueça de aplicar o CUPOM!");
-      await ele("depois você só consegue comprar o acesso quando abrirmos as vagas novamente e com o valor normal 🙁");
+      await ele(COM_CUPOM() ? "Lembrando: o *cupom Black*, com os *2 anos* de acesso, o *App* e o *Workshop ao vivo*, só fica liberado por *poucos minutos*! 🖤" : "Lembrando: a *condição de Black Friday*, com os *2 anos* de acesso, o *App* e o *Workshop ao vivo*, só fica liberada por *poucos minutos*! 🖤");
+      await ele(COM_CUPOM() ? "depois disso o cupom Black expira, e o acesso volta a ser de 1 ano, com o valor normal 🙁" : "depois disso a condição de Black Friday acaba, e o acesso volta a ser de 1 ano, com o valor normal 🙁");
     }), 90000 * ritmo);
     setTimeout(() => emFila(() => duvidas(cta)), 120000 * ritmo);
   }
@@ -1572,7 +1580,7 @@
     ["E se eu não gostar?", "Você tem *7 dias de garantia*. Se não gostar, é só pedir, e a gente devolve todo o seu dinheiro. Sem pergunta e sem complicação."],
     ["Como recebo as promoções?", "No WhatsApp, pelo *grupo da sua região*: são mais de 150 promoções por dia, com os voos saindo perto de você. E na nossa plataforma você ainda procura promoções pelo destino que quiser."],
     ["É seguro?", "Sim! A passagem é emitida no seu nome, no site da própria companhia aérea. Você recebe o *código da reserva* e confere lá mesmo. São mais de 17 mil clientes viajando com a gente."],
-    ["Dá pra parcelar?", "Dá sim: *12x de R$ 30,18* no cartão, com o cupom *" + CUPOM + "* aplicado. É o acesso por 1 ano inteiro."],
+    ["Dá pra parcelar?", "Dá sim: *12x de R$ 40,34* no cartão, ou *R$ 397 à vista*, " + (COM_CUPOM() ? "com o cupom *" + CUPOM + "* já aplicado no link" : "já com o preço de Black Friday no link") + ". São *2 anos* de acesso, pagando uma vez só."],
   ];
   let duvidasAbertas = false;
   async function duvidas(cta) {
@@ -1611,7 +1619,7 @@
       restantes.splice(i, 1);
       if (restantes.length || !mostrouAtendente) await ele("Mais alguma dúvida?", 700);
     }
-    await ele("Então bora! É só tocar no botão e aplicar o cupom *" + CUPOM + "* 👇");
+    await ele(COM_CUPOM() ? "Então bora! É só tocar no botão: o cupom *" + CUPOM + "* já vai aplicado 👇" : "Então bora! É só tocar no botão: o preço de Black Friday já vai no link 👇");
     const botao = cta.cloneNode(true);
     botao.addEventListener("click", (e) => { e.preventDefault(); cta.click(); });
     const caixa = document.createElement("div");

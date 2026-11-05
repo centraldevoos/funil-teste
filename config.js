@@ -5,8 +5,8 @@ window.CONFIG = {
 
   // Link do checkout do VIP na Hub.la (o padrão, sem order bump). O teste "orderbump-v1" abaixo troca o link por versão.
   // Vazio = botão mostra um aviso.
-  LINK_CHECKOUT: "https://pay.hub.la/Muxrk9khr04JS10t58pm",
-  CUPOM: "BOASVINDAS",
+  LINK_CHECKOUT: "https://pay.hub.la/o3IjM8S2Shbp3YJI3Owv",
+  CUPOM: "BLACK",
   // WhatsApp do atendimento: aparece como "Falar com um atendente" na lista de dúvidas do fim. Vazio = não aparece.
   LINK_ATENDENTE: "https://api.whatsapp.com/send/?phone=553182671759&text=Estou+com+d%C3%BAvidas+sobre+o+VIP&type=phone",
 
@@ -36,6 +36,8 @@ window.CONFIG = {
     carlosSantiago: "midia/fluxo/carlosSantiago.jpg",
     julianaEgito: "midia/fluxo/julianaEgito.jpg",
     comoAplicarCupom: "midia/fluxo/comoAplicarCupom.jpg",
+    // Black a R$ 397 (05/11/2026): a mesma arte do fluxo do DataCrazy, "quanto custaria ter tudo isso por 1 ano".
+    tabela397: "midia/fluxo/tabela-397.jpg",
   },
 
   // Promoção no fim do funil (o "print" do WhatsApp com a promoção pro destino da pessoa).
@@ -68,16 +70,17 @@ window.CONFIG = {
         },
       },
     },
-    // Desde 21/10/2026: checkout com ou sem order bump. A = sem order bump; B = com order bump.
-    // O painel mostra as vendas reais da Hub.la de cada link (venda, order bump e receita).
+    // Desde 05/11/2026: Black a R$ 397, 2 anos. A = sem cupom (o checkout já mostra de R$ 3.058 por R$ 397);
+    // B = cupom BLACK já aplicado no link. O painel separa as vendas pelo link de cada versão.
     {
-      nome: "orderbump-v1",
+      nome: "cupom-v1",
       pesos: { A: 50, B: 50 },
       variantes: {
-        A: { linkCheckout: "https://pay.hub.la/Muxrk9khr04JS10t58pm" },
-        B: { linkCheckout: "https://pay.hub.la/qslAT0ELAIjaV6sdgy84" },
+        A: { linkCheckout: "https://pay.hub.la/o3IjM8S2Shbp3YJI3Owv" },
+        B: { linkCheckout: "https://pay.hub.la/WKYYwK2YG3UFQOIYs8OY?coupon=BLACK", cupomAplicado: "sim" },
       },
     },
+    // Pausado em 05/11/2026: "orderbump-v1" (A = Muxrk9khr04JS10t58pm sem order bump; B = qslAT0ELAIjaV6sdgy84 com order bump).
   ],
 
   PROMOS_FONTE: "simulada",
