@@ -39,6 +39,7 @@
     </div>
   </div>
   <p class="dica">Tela de um iPhone (390 × 844). O modo rápido deixa tudo 5x mais rápido, só pra pular etapas.</p>
+  <p class="dica" id="erro" role="alert" hidden>Não foi possível abrir a prévia. Use um endereço HTTP ou HTTPS válido.</p>
 <script>
   // Endereço do funil: ?src=... na própria página, ou a pasta site/ ao lado desta.
   const p = new URLSearchParams(location.search);
@@ -46,7 +47,16 @@
   let rapido = p.get("rapido") === "1";
   const iframe = document.getElementById("funil"), botaoRapido = document.getElementById("rapido");
   function abrir() {
-    const u = new URL(base, location.href);
+    let u;
+    try {
+      u = new URL(base, location.href);
+      if (u.protocol !== "http:" && u.protocol !== "https:") throw new Error("protocolo não permitido");
+    } catch (e) {
+      iframe.removeAttribute("src");
+      document.getElementById("erro").hidden = false;
+      return;
+    }
+    document.getElementById("erro").hidden = true;
     if (rapido) u.searchParams.set("teste", "1"); else u.searchParams.delete("teste");
     u.searchParams.set("_", Date.now()); // sempre uma conversa nova
     iframe.src = u.toString();
