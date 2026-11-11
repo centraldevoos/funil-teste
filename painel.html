@@ -224,12 +224,30 @@
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const tempo = (s) => (s == null ? "—" : s < 60 ? Math.round(s) + " s" : Math.floor(s / 60) + " min " + String(Math.round(s % 60)).padStart(2, "0") + " s");
 
-  // Tooltip: qualquer elemento com data-dica mostra o texto (HTML) ao passar o mouse ou tocar.
+  // O atributo transporta dados, nunca HTML; a formatação usa somente nós fixos.
+  const textoDica = (titulo, linhas = [], sufixo = "") => JSON.stringify({ titulo, linhas, sufixo });
   const dica = $("dica");
   function mostrarDica(e) {
     const alvo = e.target.closest("[data-dica]");
     if (!alvo) { dica.style.opacity = 0; return; }
-    dica.innerHTML = alvo.getAttribute("data-dica");
+    let texto;
+    try { texto = JSON.parse(alvo.getAttribute("data-dica")); } catch (err) { texto = null; }
+    dica.replaceChildren();
+    if (!texto || typeof texto.titulo !== "string" || typeof texto.sufixo !== "string" ||
+        !Array.isArray(texto.linhas) || !texto.linhas.every((linha) => typeof linha === "string")) {
+      dica.style.opacity = 0;
+      return;
+    }
+    if (texto.titulo) {
+      const titulo = document.createElement("b");
+      titulo.textContent = texto.titulo;
+      dica.appendChild(titulo);
+    }
+    dica.appendChild(document.createTextNode(texto.sufixo));
+    for (const linha of texto.linhas) {
+      dica.appendChild(document.createElement("br"));
+      dica.appendChild(document.createTextNode(linha));
+    }
     const x = (e.touches ? e.touches[0].clientX : e.clientX), y = (e.touches ? e.touches[0].clientY : e.clientY);
     const w = dica.offsetWidth, h = dica.offsetHeight;
     dica.style.left = Math.min(Math.max(8, x - w / 2), innerWidth - w - 8) + "px";
@@ -295,7 +313,7 @@
     const max = Math.max(1, ...pontos.map((p) => p.visitas));
     const rot = (dt) => porHora ? String(dt.getHours()).padStart(2, "0") + "h" : dt.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
     $("serie").innerHTML = '<div class="colunas"><span class="escala">máx. ' + fmt(max) + "</span>" + pontos.map((p) =>
-      '<div class="col" data-dica="<b>' + rot(p.quando) + "</b><br>" + fmt(p.visitas) + " visitas<br>" + fmt(p.ofertas) + " viram a oferta<br>" + fmt(p.checkouts) + ' checkouts"><i style="height:' + ((p.visitas / max) * 100).toFixed(1) + '%"></i></div>').join("") +
+      '<div class="col" data-dica="' + esc(textoDica(rot(p.quando), [fmt(p.visitas) + " visitas", fmt(p.ofertas) + " viram a oferta", fmt(p.checkouts) + " checkouts"])) + '"><i style="height:' + ((p.visitas / max) * 100).toFixed(1) + '%"></i></div>').join("") +
       '</div><div class="eixo"><span>' + rot(pontos[0].quando) + "</span><span>" + rot(pontos[pontos.length - 1].quando) + "</span></div>";
   }
 
@@ -346,7 +364,7 @@
       variantes.forEach((v, i) => {
         const n = contagem[v][k] || 0, base = contagem[v].inicio || 0, p = pct(n, base);
         const queda = !e.opcional && anterior[v] > 0 && n < anterior[v] ? '<div class="queda' + (maiorQueda[v] === k ? " maior" : "") + '">−' + pctTxt(pct(anterior[v] - n, anterior[v])) + "</div>" : "";
-        html += '<td class="num">' + fmt(n) + " <small>(" + pctTxt(p) + ")</small>" + queda + '</td><td><div class="barra" data-dica="<b>' + esc(e.nome) + "</b><br>Versão " + esc(v) + ": " + fmt(n) + " (" + pctTxt(p) + ')"><i style="width:' + Math.min(p, 100).toFixed(1) + "%;background:" + CORES[i % CORES.length] + '"></i></div></td>';
+        html += '<td class="num">' + fmt(n) + " <small>(" + pctTxt(p) + ")</small>" + queda + '</td><td><div class="barra" data-dica="' + esc(textoDica(e.nome, ["Versão " + v + ": " + fmt(n) + " (" + pctTxt(p) + ")"])) + '"><i style="width:' + Math.min(p, 100).toFixed(1) + "%;background:" + CORES[i % CORES.length] + '"></i></div></td>';
         if (!e.opcional) anterior[v] = n;
       });
       html += "</tr>";
@@ -442,7 +460,7 @@
     const r = canvas.getBoundingClientRect(), gx = ((e.clientX - r.left) / r.width) * GRADE.nx, gy = ((e.clientY - r.top) / r.height) * GRADE.ny;
     const perto = pontos.filter((p) => Math.abs(p.gx + 0.5 - gx) <= 3 && Math.abs(p.gy + 0.5 - gy) <= 3);
     const n = perto.reduce((s, p) => s + p.n, 0), raiva = perto.reduce((s, p) => s + p.raiva, 0);
-    return n ? "<b>" + fmt(n) + " toques</b> nesta região<br>" + pctTxt(pct(n, total)) + " de todos os toques" + (raiva ? "<br>" + fmt(raiva) + " toques de raiva" : "") : "Nenhum toque aqui";
+    return n ? textoDica(fmt(n) + " toques", [pctTxt(pct(n, total)) + " de todos os toques", ...(raiva ? [fmt(raiva) + " toques de raiva"] : [])], " nesta região") : textoDica("", [], "Nenhum toque aqui");
   }
   function listaDeToques(d) {
     const alvos = (d.toques || []).filter((t) => t.tipo === "alvo").map((t) => ({ nome: t.chave, n: +t.toques, s: +t.sessoes, uteis: +t.uteis, raiva: +t.raiva })).sort((a, b) => b.n - a.n);
@@ -472,7 +490,7 @@
       if (resto) mostra.push({ valor: "Outros (" + (lista.length - 8) + ")", n: resto });
       return '<div class="pergunta"><h3>' + titulo + "</h3>" + mostra.map((x) => {
         const p = pct(x.n, total);
-        return '<div class="opcao-resp" data-dica="<b>' + esc(x.valor) + "</b><br>" + fmt(x.n) + " pessoas · " + pctTxt(p) + '"><span class="nome">' + esc(x.valor) + '</span><span class="val">' + pctTxt(p) + " · " + fmt(x.n) + '</span><div class="barra"><i style="width:' + p.toFixed(1) + '%"></i></div></div>';
+        return '<div class="opcao-resp" data-dica="' + esc(textoDica(String(x.valor), [fmt(x.n) + " pessoas · " + pctTxt(p)])) + '"><span class="nome">' + esc(x.valor) + '</span><span class="val">' + pctTxt(p) + " · " + fmt(x.n) + '</span><div class="barra"><i style="width:' + p.toFixed(1) + '%"></i></div></div>';
       }).join("") + "</div>";
     }).join("");
   }
@@ -509,7 +527,7 @@
     $("dispositivos").innerHTML = disp.length ? disp.map((s) => '<div class="disp"><span>' + (s.valor === "celular" ? "📱 Celular" : s.valor === "computador" ? "💻 Computador" : esc(s.valor)) + " <small>· " + pctTxt(pct(s.visitas, totalV)) + ' das visitas</small></span><span><b>' + fmt(s.visitas) + "</b> <small>· checkout " + pctTxt(pct(s.checkouts, s.visitas)) + "</small></span></div>").join("") : '<div class="vazio peq">Sem visitas no período.</div>';
     const horas = Array.from({ length: 24 }, (_, h) => { const s = seg.find((x) => x.tipo === "hora" && +x.valor === h); return { h, v: s ? +s.visitas : 0, c: s ? +s.checkouts : 0 }; });
     const max = Math.max(1, ...horas.map((x) => x.v));
-    $("horas").innerHTML = horas.some((x) => x.v) ? '<div class="colunas" style="height:120px">' + horas.map((x) => '<div class="col" data-dica="<b>' + String(x.h).padStart(2, "0") + "h</b><br>" + fmt(x.v) + " visitas<br>" + fmt(x.c) + ' checkouts"><i style="height:' + ((x.v / max) * 100).toFixed(1) + '%"></i></div>').join("") + '</div><div class="eixo"><span>00h</span><span>06h</span><span>12h</span><span>18h</span><span>23h</span></div>' : '<div class="vazio peq">Sem visitas no período.</div>';
+    $("horas").innerHTML = horas.some((x) => x.v) ? '<div class="colunas" style="height:120px">' + horas.map((x) => '<div class="col" data-dica="' + esc(textoDica(String(x.h).padStart(2, "0") + "h", [fmt(x.v) + " visitas", fmt(x.c) + " checkouts"])) + '"><i style="height:' + ((x.v / max) * 100).toFixed(1) + '%"></i></div>').join("") + '</div><div class="eixo"><span>00h</span><span>06h</span><span>12h</span><span>18h</span><span>23h</span></div>' : '<div class="vazio peq">Sem visitas no período.</div>';
   }
 
   async function carregar() {
