@@ -1563,7 +1563,8 @@
       await esperar(2500);
       emFila(async () => {
         await ele(COM_CUPOM() ? "🎟️ O *cupom Black* já está aplicado no link: é só preencher seus dados e garantir seus *2 anos* de acesso!" : "🖤 A *condição de Black Friday* já está no link: é só preencher seus dados e garantir seus *2 anos* de acesso!");
-        await ele("Caso tenha alguma dúvida, me avisa aqui!");
+        // Pedido do Pedro (13/11): a pessoa não tem onde escrever, então o botão "Estou com dúvidas" vem logo em seguida.
+        await duvidas(cta);
       });
     });
     setTimeout(() => emFila(async () => {
