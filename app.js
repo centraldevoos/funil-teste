@@ -1516,7 +1516,7 @@
       '<div class="oferta-topo"><img src="midia/logo-avatar.png" width="54" height="54" alt=""><div><h3>Comunidade VIP</h3><p>Super Black Friday</p></div><span class="off">2 ANOS</span></div>' +
       '<div class="oferta-corpo">' +
       '<div class="preco-de">De <s>R$ 3.058</s></div>' +
-      '<div class="preco-por"><small>12x de</small> R$ 40,34</div>' +
+      '<div class="preco-por"><small>12x de</small> R$ 40,80</div>' +
       '<div class="preco-nota">ou R$ 397 à vista · <b>2 anos de acesso</b>, pagando uma vez só</div>' +
       (COM_CUPOM()
         ? '<div class="cupom"><div><span>✅ Cupom aplicado</span><strong>' + esc(CUPOM) + '</strong></div><span class="aplicado">Já vai no link</span></div>'
@@ -1580,7 +1580,7 @@
     ["E se eu não gostar?", "Você tem *7 dias de garantia*. Se não gostar, é só pedir, e a gente devolve todo o seu dinheiro. Sem pergunta e sem complicação."],
     ["Como recebo as promoções?", "No WhatsApp, pelo *grupo da sua região*: são mais de 150 promoções por dia, com os voos saindo perto de você. E na nossa plataforma você ainda procura promoções pelo destino que quiser."],
     ["É seguro?", "Sim! A passagem é emitida no seu nome, no site da própria companhia aérea. Você recebe o *código da reserva* e confere lá mesmo. São mais de 17 mil clientes viajando com a gente."],
-    ["Dá pra parcelar?", "Dá sim: *12x de R$ 40,34* no cartão, ou *R$ 397 à vista*, " + (COM_CUPOM() ? "com o cupom *" + CUPOM + "* já aplicado no link" : "já com o preço de Black Friday no link") + ". São *2 anos* de acesso, pagando uma vez só."],
+    ["Dá pra parcelar?", "Dá sim: *12x de R$ 40,80* no cartão, ou *R$ 397 à vista*, " + (COM_CUPOM() ? "com o cupom *" + CUPOM + "* já aplicado no link" : "já com o preço de Black Friday no link") + ". São *2 anos* de acesso, pagando uma vez só."],
   ];
   let duvidasAbertas = false;
   async function duvidas(cta) {
