@@ -3,10 +3,12 @@ window.CONFIG = {
   // Foto do Henrique (fica em site/midia/).
   AVATAR_URL: "midia/henrique-avatar.jpg",
 
-  // Link do checkout do VIP na Hub.la (o padrão, sem order bump). O teste "orderbump-v1" abaixo troca o link por versão.
+  // Link do checkout do VIP na Hub.la (o padrão: cupom aplicado, sem order bump). O teste "orderbump-v2" abaixo troca o link por versão.
   // Vazio = botão mostra um aviso.
-  LINK_CHECKOUT: "https://pay.hub.la/o3IjM8S2Shbp3YJI3Owv",
-  CUPOM: "BLACK",
+  // Desde 19/11/2026 o cupom é o BLACKVIP (87,0177% = R$ 3.058 por R$ 397), que vale só nas duas ofertas do teste
+  // (WKYYwK sem bump e ahMvLr com bump). O BLACK antigo não pode ganhar oferta nova na Hub.la.
+  LINK_CHECKOUT: "https://pay.hub.la/WKYYwK2YG3UFQOIYs8OY?coupon=BLACKVIP",
+  CUPOM: "BLACKVIP",
   // WhatsApp do atendimento: aparece como "Falar com um atendente" na lista de dúvidas do fim. Vazio = não aparece.
   LINK_ATENDENTE: "https://api.whatsapp.com/send/?phone=553182671759&text=Estou+com+d%C3%BAvidas+sobre+o+VIP&type=phone",
 
@@ -70,16 +72,20 @@ window.CONFIG = {
         },
       },
     },
-    // Desde 05/11/2026: Black a R$ 397, 2 anos. A = sem cupom (o checkout já mostra de R$ 3.058 por R$ 397);
-    // B = cupom BLACK já aplicado no link. O painel separa as vendas pelo link de cada versão.
+    // Desde 19/11/2026 (pedido do dono): os dois lados com o cupom aplicado; o que muda é o order bump.
+    // A = sem order bump (WKYYwK2YG3UFQOIYs8OY); B = com order bump "+1 pessoa por metade do valor", R$ 197
+    // (oferta ahMvLr5zHw6qkukPyTvK; o bump é a oferta O0q2pK2RPmIZSW1oaGU9 do produto "Adicione mais uma pessoa").
+    // O painel separa as vendas pelo link de cada versão; o bump é a compra do +1 pelo mesmo e-mail.
     {
-      nome: "cupom-v1",
+      nome: "orderbump-v2",
       pesos: { A: 50, B: 50 },
       variantes: {
-        A: { linkCheckout: "https://pay.hub.la/o3IjM8S2Shbp3YJI3Owv" },
-        B: { linkCheckout: "https://pay.hub.la/WKYYwK2YG3UFQOIYs8OY?coupon=BLACK", cupomAplicado: "sim" },
+        A: { linkCheckout: "https://pay.hub.la/WKYYwK2YG3UFQOIYs8OY?coupon=BLACKVIP", cupomAplicado: "sim" },
+        B: { linkCheckout: "https://pay.hub.la/ahMvLr5zHw6qkukPyTvK?coupon=BLACKVIP", cupomAplicado: "sim" },
       },
     },
+    // Encerrado em 19/11/2026: "cupom-v1" (A = o3IjM8S2Shbp3YJI3Owv sem cupom; B = WKYYwK2YG3UFQOIYs8OY?coupon=BLACK).
+    // Resultado: B, com o cupom aplicado, fez 12 vendas ÷ 60 cliques no checkout contra 6 ÷ 57 (R$ 1,62 contra R$ 0,78 por visita).
     // Pausado em 05/11/2026: "orderbump-v1" (A = Muxrk9khr04JS10t58pm sem order bump; B = qslAT0ELAIjaV6sdgy84 com order bump).
   ],
 
